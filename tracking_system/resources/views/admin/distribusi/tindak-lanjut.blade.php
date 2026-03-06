@@ -7,11 +7,22 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold mb-0">Kelola Distribusi Mingguan</h4>
                 <span class="text-muted">
-                    Minggu mulai: {{ \Carbon\Carbon::parse($distribusi->tanggal_distribusi)->format('d M Y') }}
+                    Minggu mulai: {{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
                 </span>
             </div>
 
-            <form action="{{ route('distribusi.total.simpan') }}" method="POST">
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Error:</strong>
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            <form action="{{ route('admin.distribusi.total.simpan') }}" method="POST">
                 @csrf
                 <input type="hidden" name="id_distribusi" value="{{ $distribusi->id }}">
 
@@ -22,10 +33,10 @@
                 @endphp
 
                 <div class="accordion" id="accordionDistribusi">
-                    @foreach($hari as $index => $namaHari)
+                    @foreach($hariList as $index => $tanggalStr)
                         @php
-                            $tanggal = $start->clone()->addDays($index);
-                            $tanggalStr = $tanggal->format('Y-m-d');
+                            $tanggal = \Carbon\Carbon::parse($tanggalStr);
+                            $namaHari = $tanggal->locale('id')->dayName; // Senin, Selasa, dst
                         @endphp
 
                         <div class="accordion-item mb-3 border shadow-sm">
@@ -38,7 +49,7 @@
                                         aria-controls="collapse{{ $index }}">
                                     {{ $namaHari }}, {{ $tanggal->format('d M Y') }}
                                     <span class="ms-auto me-3 text-muted summary-preview" data-tanggal="{{ $tanggalStr }}">
-                                        <!-- Placeholder awal, akan di-update JS -->
+                                        <!-- Placeholder default, akan di-update JS -->
                                         Penerima: 0 | Pagu: Rp 0
                                     </span>
                                 </button>
@@ -49,65 +60,76 @@
                                 <div class="accordion-body">
                                     <div class="row g-3">
                                         @foreach($sekolahAktif as $s)
-                                            @php
-                                                $data = $dataDistribusi[$tanggalStr][$s->id] ?? null;
-                                                $porsiKecil = old("sekolah.{$s->id}.{$tanggalStr}.porsi_kecil_harian", $data?->porsi_kecil_harian ?? $s->porsi_kecil_default);
-                                                $porsiBesar = old("sekolah.{$s->id}.{$tanggalStr}.porsi_besar_harian", $data?->porsi_besar_harian ?? $s->porsi_besar_default);
-                                                $total = $porsiKecil + $porsiBesar;
-                                                $paguSekolah = ($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar);
-                                                $jenisMenu = $data?->menu_kering > 0 ? 'kering' : ($data?->menu_basah > 0 ? 'basah' : 'kering');
-                                            @endphp
-                                            <div class="col-12 mb-3 border-bottom pb-3 sekolah-row" 
-                                                 data-sekolah="{{ $s->id }}" 
-                                                 data-hari="{{ $tanggalStr }}">
-                                                <strong>{{ $s->nama_sekolah }}</strong>
-                                                <input type="hidden" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][id_sekolah]" value="{{ $s->id }}">
-                                                <input type="hidden" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][tanggal_harian]" value="{{ $tanggalStr }}">
+                                        @php
+                                            $data = $dataDistribusi[$tanggalStr][$s->id] ?? null;
 
-                                                <div class="row g-3 mt-2">
-                                                    <div class="col-md-2">
-                                                        <label>Porsi Kecil</label>
-                                                        <input type="number"
-                                                               name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][porsi_kecil_harian]"
-                                                               class="form-control porsi kecil-input"
-                                                               min="0"
-                                                               value="{{ $porsiKecil }}">
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label>Porsi Besar</label>
-                                                        <input type="number"
-                                                               name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][porsi_besar_harian]"
-                                                               class="form-control porsi besar-input"
-                                                               min="0"
-                                                               value="{{ $porsiBesar }}">
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <label>Total Penerima</label>
-                                                        <input type="number" class="form-control total" value="{{ $total }}" readonly>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Pagu Sekolah</label>
-                                                        <input type="text" class="form-control pagu-sekolah bg-light" 
-                                                               value="Rp {{ number_format($paguSekolah, 0, ',', '.') }}" readonly>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label>Jenis Menu</label>
-                                                        <div class="d-flex gap-3 mt-2">
-                                                            <div class="form-check">
-                                                                <input type="radio" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][jenis_menu]"
-                                                                       value="kering" {{ $jenisMenu === 'kering' ? 'checked' : '' }}>
-                                                                <label>Kering</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input type="radio" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][jenis_menu]"
-                                                                       value="basah" {{ $jenisMenu === 'basah' ? 'checked' : '' }}>
-                                                                <label>Basah</label>
-                                                            </div>
+                                            // Prioritas: DB > old > default sekolah
+                                            $porsiKecil = old("sekolah.{$s->id}.{$tanggalStr}.porsi_kecil_harian", 
+                                                            $data?->porsi_kecil_harian ?? $s->porsi_kecil_default);
+
+                                            $porsiBesar = old("sekolah.{$s->id}.{$tanggalStr}.porsi_besar_harian", 
+                                                            $data?->porsi_besar_harian ?? $s->porsi_besar_default);
+
+                                            $total = $porsiKecil + $porsiBesar;
+
+                                            // Gunakan pagu dari DB kalau sudah tersimpan, kalau belum hitung ulang
+                                            $paguSekolah = $data?->pagu_harian_sekolah 
+                                                        ?? (($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar));
+
+                                            $jenisMenu = $data?->menu_kering > 0 ? 'kering' : ($data?->menu_basah > 0 ? 'basah' : 'kering');
+                                        @endphp
+
+                                        <div class="col-12 mb-3 border-bottom pb-3 sekolah-row" 
+                                            data-sekolah="{{ $s->id }}" 
+                                            data-hari="{{ $tanggalStr }}">
+                                            <strong>{{ $s->nama_sekolah }}</strong>
+                                            <input type="hidden" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][id_sekolah]" value="{{ $s->id }}">
+                                            <input type="hidden" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][tanggal_harian]" value="{{ $tanggalStr }}">
+
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-2">
+                                                    <label>Porsi Kecil</label>
+                                                    <input type="number"
+                                                        name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][porsi_kecil_harian]"
+                                                        class="form-control porsi kecil-input"
+                                                        min="0"
+                                                        value="{{ $porsiKecil }}">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label>Porsi Besar</label>
+                                                    <input type="number"
+                                                        name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][porsi_besar_harian]"
+                                                        class="form-control porsi besar-input"
+                                                        min="0"
+                                                        value="{{ $porsiBesar }}">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label>Total Penerima</label>
+                                                    <input type="number" class="form-control total" value="{{ $total }}" readonly>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>Pagu Sekolah</label>
+                                                    <input type="text" class="form-control pagu-sekolah bg-light" 
+                                                        value="Rp {{ number_format($paguSekolah, 0, ',', '.') }}" readonly>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label>Jenis Menu</label>
+                                                    <div class="d-flex gap-3 mt-2">
+                                                        <div class="form-check">
+                                                            <input type="radio" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][jenis_menu]"
+                                                                value="kering" {{ $jenisMenu === 'kering' ? 'checked' : '' }} required>
+                                                            <label>Kering</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input type="radio" name="sekolah[{{ $s->id }}][{{ $tanggalStr }}][jenis_menu]"
+                                                                value="basah" {{ $jenisMenu === 'basah' ? 'checked' : '' }}>
+                                                            <label>Basah</label>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        @endforeach
+                                        </div>
+                                    @endforeach
                                     </div>
 
                                     <!-- Summary Total per Hari (real-time) -->

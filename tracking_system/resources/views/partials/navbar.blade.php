@@ -1,16 +1,18 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
-    <div class="container-fluid">
-        <div class="d-flex align-items-center ms-auto gap-3">
-            <span class="text-muted">
-                {{ Auth::user()->name ?? 'Admin' }}
-            </span>
+<nav class="navbar bg-white shadow-sm px-4 py-3">
+    <button class="btn btn-light border-0" id="toggleSidebar">
+        <i class="bi bi-list fs-4"></i>
+    </button>
 
-            <form action="{{ route('logout') }}" method="POST" class="d-flex align-items-center m-0">
-                @csrf
-                <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-box-arrow-right me-1"></i> Logout
-                </button>
-            </form>
-        </div>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <span class="fw-semibold text-dark">
+            {{ Auth::user()->name ?? 'Admin' }}
+        </span>
+
+        <form action="{{ route('logout') }}" method="POST" class="m-0">
+            @csrf
+            <button class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </form>
     </div>
 </nav>

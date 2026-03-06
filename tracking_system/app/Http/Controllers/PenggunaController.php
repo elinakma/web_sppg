@@ -8,15 +8,20 @@ use Illuminate\Support\Facades\Hash;
 
 class PenggunaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('id')->get();
-        return view('pengguna.kelola-pengguna', compact('users'));
-    }
+        $search = $request->search;
 
-    public function create()
-    {
-        return view('pengguna.tambah-pengguna');
+        $users = User::when($search, function ($query, $search) {
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('role', 'like', "%{$search}%");
+        })
+        ->orderBy('name', 'asc')
+        ->paginate(8)
+        ->withQueryString();
+
+        return view('pengguna.kelola-pengguna', compact('users'));
     }
 
     public function store(Request $request)
@@ -39,47 +44,42 @@ class PenggunaController extends Controller
         ]);
 
         return redirect()->route('admin.pengguna.index')
-                         ->with('success', 'Pengguna berhasil ditambahkan.');
+                         ->with('success', 'Data pengguna berhasil ditambahkan.');
     }
 
-    public function edit(User $user)
-    {
-        return view('pengguna.edit-pengguna', compact('user'));
-    }
-
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $pengguna)
     {
         $request->validate([
             'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $user->id,
+            'email'    => 'required|email|unique:users,email,' . $pengguna->id,
             'password' => 'nullable|string|min:8|confirmed',
             'telepon' => 'nullable|string|regex:/^[89][0-9]{8,12}$/|max:20',
             'role'     => 'required|in:Admin,Aslap,Gizi,Akuntan,Driver',
         ]);
 
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->telepon = $request->telepon;
-        $user->role = $request->role;
+        $pengguna->name = $request->name;
+        $pengguna->email = $request->email;
+        $pengguna->telepon = $request->telepon;
+        $pengguna->role = $request->role;
 
         if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
+            $pengguna->password = Hash::make($request->password);
         }
 
-        $user->save();
+        $pengguna->save();
 
         return redirect()->route('admin.pengguna.index')
-                         ->with('success', 'Pengguna berhasil diperbarui.');
+                         ->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $pengguna)
     {
         // Opsional: larang hapus akun Admin terakhir
-        if ($user->role === 'Admin' && User::where('role', 'Admin')->count() <= 1) {
+        if ($pengguna->role === 'Admin' && User::where('role', 'Admin')->count() <= 1) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus admin terakhir.');
         }
 
-        $user->delete();
+        $pengguna->delete();
 
         return redirect()->route('admin.pengguna.index')
                          ->with('success', 'Pengguna berhasil dihapus.');

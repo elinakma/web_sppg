@@ -7,9 +7,18 @@ use App\Models\Distribusi;
 use App\Models\Sekolah;
 use App\Models\DistribusiSekolah;
 use App\Models\Pagu;
+use Illuminate\Support\Facades\Log;
 
 class DistribusiController extends Controller
 {
+    public function index()
+    {
+        $distribusi = Distribusi::orderBy('tanggal_awal', 'desc')
+            ->paginate(8);
+            
+        return view('admin.distribusi.kelola-distribusi', compact('distribusi'));
+    }
+
     public function create()
     {
         return view('admin.distribusi.tambah-distribusi');
@@ -18,22 +27,18 @@ class DistribusiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tanggal_distribusi' => 'required|date'
+            'tanggal_awal' => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
         ]);
 
         Distribusi::create([
-            'tanggal_distribusi' => $request->tanggal_distribusi,
-            'status' => 'draft'
+            'tanggal_awal' => $request->tanggal_awal,
+            'tanggal_akhir' => $request->tanggal_akhir,
+            'status' => 'draf'
         ]);
 
-        return redirect()->route('distribusi.index')
+        return redirect()->route('admin.distribusi.index')
             ->with('success', 'Tanggal distribusi berhasil ditambahkan');
-    }
-
-    public function index()
-    {
-        $distribusi = Distribusi::orderBy('tanggal_distribusi', 'desc')->get();
-        return view('admin.distribusi.kelola-distribusi', compact('distribusi'));
     }
 
     public function kelolaTotal($id)
@@ -44,9 +49,17 @@ class DistribusiController extends Controller
 
         $pagu = Pagu::getPaguAktif();
 
-        // Data real dari database (jika sudah disimpan)
-        $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)->get();
+        // Mengambil semua hari dari tanggal awal - akhir
+        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
+        $end = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
+        $hariList = [];
+        while ($start->lte($end)) {
+            $hariList[] = $start->format('Y-m-d');
+            $start->addDay();
+        }
 
+        // Data Real Distribusi Sekolah
+        $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)->get();
         $dataDistribusi = $dataDistribusiRaw->groupBy('tanggal_harian')
             ->map(fn($items) => $items->keyBy('id_sekolah'));
 
@@ -64,13 +77,8 @@ class DistribusiController extends Controller
 
         // Preview default (jika belum ada data real di hari itu)
         $previewHarian = [];
-        $start = \Carbon\Carbon::parse($distribusi->tanggal_distribusi);
-        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-        foreach ($hari as $index => $namaHari) {
-            $tanggal = $start->clone()->addDays($index);
-            $tanggalStr = $tanggal->format('Y-m-d');
-
+        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal); // Pakai tanggal_awal, bukan tanggal_distribusi
+        foreach ($hariList as $tanggalStr) {
             $totalKecil = $sekolahAktif->sum('porsi_kecil_default');
             $totalBesar = $sekolahAktif->sum('porsi_besar_default');
             $paguHarian = ($totalKecil * $pagu->pagu_porsi_kecil) + ($totalBesar * $pagu->pagu_porsi_besar);
@@ -86,6 +94,7 @@ class DistribusiController extends Controller
             'distribusi',
             'sekolahAktif',
             'dataDistribusi',
+            'hariList',
             'summaryHarian',
             'previewHarian',
             'pagu'
@@ -94,52 +103,134 @@ class DistribusiController extends Controller
     
     public function simpanTotal(Request $request)
     {
-        // Validasi
-        $validated = $request->validate([
-            'id_distribusi' => 'required|exists:distribusi,id',
-            'sekolah' => 'required|array',
-            'sekolah.*.*.id_sekolah' => 'required|exists:sekolah,id',
-            'sekolah.*.*.tanggal_harian' => 'required|date',
-            'sekolah.*.*.porsi_kecil_harian' => 'required|integer|min:0',
-            'sekolah.*.*.porsi_besar_harian' => 'required|integer|min:0',
-            'sekolah.*.*.jenis_menu' => 'required|in:kering,basah',
-            'sekolah.*.*.keterangan' => 'nullable|string|max:500',
-        ]);
+        Log::debug('simpanTotal called', ['request' => $request->all()]); /// Cek data request masuk
 
-        $id_distribusi = $request->id_distribusi;
-        $savedCount = 0;
+        try {
+            $validated = $request->validate([
+                'id_distribusi' => 'required|exists:distribusi,id',
+                'sekolah' => 'required|array',
+                'sekolah.*' => 'array',
+                'sekolah.*.*' => 'array',
+                'sekolah.*.*.id_sekolah' => 'required|exists:sekolah,id',
+                'sekolah.*.*.tanggal_harian' => 'required|date',
+                'sekolah.*.*.porsi_kecil_harian' => 'nullable|integer|min:0',
+                'sekolah.*.*.porsi_besar_harian' => 'nullable|integer|min:0',
+                'sekolah.*.*.jenis_menu' => 'nullable|in:kering,basah',
+                'sekolah.*.*.keterangan' => 'nullable|string|max:500',
+            ]);
 
-        foreach ($request->sekolah as $sekolahData) {
-            foreach ($sekolahData as $tanggalData) {
-                $sekolah = Sekolah::findOrFail($tanggalData['id_sekolah']);
-                $tanggalHarian = $tanggalData['tanggal_harian'];
+            Log::debug('Validasi sukses'); // Validasi
 
-                $porsiKecil = (int) ($tanggalData['porsi_kecil_harian'] ?? $sekolah->porsi_kecil_default);
-                $porsiBesar = (int) ($tanggalData['porsi_besar_harian'] ?? $sekolah->porsi_besar_default);
-                $totalPenerima = $porsiKecil + $porsiBesar;
+            $id_distribusi = $request->id_distribusi;
+            $pagu = Pagu::getPaguAktif();
 
-                $record = DistribusiSekolah::updateOrCreate(
-                    [
+            $saved = 0;
+
+            foreach ($request->sekolah as $id_sekolah => $dataTanggal) {
+                Log::debug('Mulai loop sekolah', ['id_sekolah' => $id_sekolah, 'dataTanggal' => $dataTanggal]); // Cek loop sekolah
+
+                foreach ($dataTanggal as $tanggal_harian => $data) {
+                    Log::debug('Mulai sub-loop tanggal', ['tanggal_harian' => $tanggal_harian, 'data' => $data]); // Cek data per tanggal
+
+                    $existing = DistribusiSekolah::where([
                         'id_distribusi' => $id_distribusi,
-                        'id_sekolah' => $tanggalData['id_sekolah'],
-                        'tanggal_harian' => $tanggalHarian,
-                    ],
-                    [
-                        'porsi_kecil_harian' => $porsiKecil,
-                        'porsi_besar_harian' => $porsiBesar,
-                        'menu_kering' => $tanggalData['jenis_menu'] === 'kering' ? $totalPenerima : 0,
-                        'menu_basah' => $tanggalData['jenis_menu'] === 'basah' ? $totalPenerima : 0,
-                        'total_penerima' => $totalPenerima,
-                        'keterangan' => $tanggalData['keterangan'] ?? null,
-                    ]
-                );
+                        'id_sekolah' => $id_sekolah,
+                        'tanggal_harian' => $tanggal_harian,
+                    ])->first();
 
-                $savedCount++;
+                    $porsiKecil = (int) ($data['porsi_kecil_harian'] ?? ($existing?->porsi_kecil_harian ?? 0));
+                    $porsiBesar = (int) ($data['porsi_besar_harian'] ?? ($existing?->porsi_besar_harian ?? 0));
+                    $totalPenerima = $porsiKecil + $porsiBesar;
+
+                    $jenisMenu = $data['jenis_menu'] ?? ($existing?->menu_kering > 0 ? 'kering' : ($existing?->menu_basah > 0 ? 'basah' : 'kering'));
+
+                    $paguHarianSekolah = ($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar);
+
+                    $record = DistribusiSekolah::updateOrCreate(
+                        [
+                            'id_distribusi' => $id_distribusi,
+                            'id_sekolah' => $id_sekolah,
+                            'tanggal_harian' => $tanggal_harian,
+                        ],
+                        [
+                            'porsi_kecil_harian' => $porsiKecil,
+                            'porsi_besar_harian' => $porsiBesar,
+                            'menu_kering' => $jenisMenu === 'kering' ? $totalPenerima : 0,
+                            'menu_basah' => $jenisMenu === 'basah' ? $totalPenerima : 0,
+                            'total_penerima' => $totalPenerima,
+                            'pagu_harian_sekolah' => $paguHarianSekolah,
+                            'keterangan' => $data['keterangan'] ?? $existing?->keterangan,
+                        ]
+                    );
+
+                    $saved++;
+
+                    Log::debug('Record saved', ['record_id' => $record->id, 'was_new' => $record->wasRecentlyCreated]); // Cek simpan sukses
+                }
             }
+
+            Log::debug('Loop selesai, total saved', ['saved' => $saved]); // Total simpan
+
+            return redirect()->route('admin.distribusi.index')
+                ->with('success', "Berhasil menyimpan $saved record distribusi sekolah.");
+        } catch (\Exception $e) {
+            Log::error('Error di simpanTotal', ['error' => $e->getMessage()]); // Catch error
+            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()]);
+        }
+    }
+
+    // Detail
+    public function detail($id)
+    {
+        $distribusi = Distribusi::findOrFail($id);
+
+        $sekolahAktif = Sekolah::aktif()->get();
+
+        $pagu = Pagu::getPaguAktif();
+
+        // Generate list hari dari tanggal_awal sampai tanggal_akhir
+        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
+        $end = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
+        $hariList = [];
+        $current = $start->clone();
+        while ($current->lte($end)) {
+            $hariList[] = $current->format('Y-m-d');
+            $current->addDay();
         }
 
-        return redirect()->route('distribusi.index')
-            ->with('success', "Berhasil simpan $savedCount record distribusi harian.");
+        // Data real distribusi sekolah
+        $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)
+            ->with('sekolah')
+            ->get();
+
+        $dataDistribusi = $dataDistribusiRaw->groupBy('tanggal_harian')
+            ->map(fn($items) => $items->keyBy('id_sekolah'));
+
+        // Hitung summary per hari (real data)
+        $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) use ($pagu) {
+            $totalKecil = $items->sum('porsi_kecil_harian');
+            $totalBesar = $items->sum('porsi_besar_harian');
+            $paguHarian = ($totalKecil * $pagu->pagu_porsi_kecil) + ($totalBesar * $pagu->pagu_porsi_besar);
+
+            return [
+                'total_porsi_kecil' => $totalKecil,
+                'total_porsi_besar' => $totalBesar,
+                'pagu_harian'       => $paguHarian,
+            ];
+        })->toArray();
+
+        // Hitung grand total mingguan
+        $grandTotalPagu = collect($summaryHarian)->sum('pagu_harian');
+
+        return view('admin.distribusi.detail-distribusi', compact(
+            'distribusi',
+            'sekolahAktif',
+            'dataDistribusi',
+            'hariList',
+            'summaryHarian',
+            'grandTotalPagu',
+            'pagu'
+        ));
     }
 
     public function cetakBeritaAcara($distribusiId)
@@ -167,9 +258,23 @@ class DistribusiController extends Controller
             'isRemoteEnabled' => true,
         ]);
 
-        $filename = "Berita_Acara_Distribusi_" . $distribusi->tanggal_distribusi->format('d-m-Y') . ".pdf";
+        $filename = "Berita_Acara_Distribusi_" . $distribusi->tanggal_awal->format('d-m-Y') . ".pdf";
 
         return $pdf->stream($filename);
+    }
+
+    public function destroy($id)
+    {
+        $distribusi = Distribusi::findOrFail($id);
+
+        // Hapus semua data anak di distribusi_sekolah
+        DistribusiSekolah::where('id_distribusi', $id)->delete();
+
+        // Hapus data distribusi utama
+        $distribusi->delete();
+
+        return redirect()->route('admin.distribusi.index')
+            ->with('success', 'Data distribusi berhasil dihapus.');
     }
 }
 

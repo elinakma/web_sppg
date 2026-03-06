@@ -27,49 +27,54 @@ Route::middleware('auth')->group(function () {
         // Resource routes
         Route::resource('pengguna', PenggunaController::class);
 
+        // Sekolah routes
+        Route::resource('sekolah', SekolahController::class);
+
         // Pagu routes
         Route::get('/pagu', [PaguController::class, 'index'])->name('pagu.index');
         Route::put('/pagu/{pagu}', [PaguController::class, 'update'])->name('pagu.update');
 
-        // Sekolah routes
-        Route::resource('sekolah', SekolahController::class);
+        // Distribusi
+        Route::prefix('distribusi')->name('distribusi.')->group(function () {
+            Route::get('/', [DistribusiController::class, 'index'])->name('index');
+            Route::get('/tambah', [DistribusiController::class, 'create'])->name('create');
+            Route::post('/', [DistribusiController::class, 'store'])->name('store');
+            Route::get('/{id}/total', [DistribusiController::class, 'kelolaTotal'])->name('total');
+            Route::post('/total/simpan', [DistribusiController::class, 'simpanTotal'])->name('total.simpan');
+            Route::get('/{id}/detail', [DistribusiController::class, 'detail'])->name('detail');
+            Route::delete('/{id}', [DistribusiController::class, 'destroy'])->name('destroy');
+            
+            
+            // Cetak berita acara untuk semua sekolah dalam satu distribusi
+            Route::get('/{distribusiId}/berita-acara', [DistribusiController::class, 'cetakBeritaAcara'])->name('berita-acara');
+        });
+
+        // Monitoring
+        Route::prefix('monitoring')->name('monitoring.')->group(function () {
+            Route::get('/map', [MapController::class, 'index'])->name('map');
+            Route::post('/assign', [MapController::class, 'storePengiriman'])->name('assign.store');
+            Route::delete('/assign/{pengiriman}', [MapController::class, 'destroyPengiriman'])->name('assign.destroy');
+        });
 
         // Map / Tracking
         Route::get('/map', [MapController::class, 'index'])->name('map.index');
     });
 
-    // Group khusus untuk role tertentu (bisa dikembangkan nanti dengan middleware role)
     Route::prefix('gizi')->name('gizi.')->group(function () {
         Route::get('/dashboard', function () {
-            return view('gizi.dashboard_gizi'); // buat view ini nanti
+            return view('gizi.dashboard_gizi');
         })->name('dashboard');
-        // Tambahkan route lain untuk Ahli Gizi di sini nanti
     });
 
     Route::prefix('aslap')->name('aslap.')->group(function () {
         Route::get('/dashboard', function () {
-            return view('aslap.dashboard_aslap'); // buat view ini nanti
+            return view('aslap.dashboard_aslap');
         })->name('dashboard');
-        // Tambahkan route untuk Asisten Lapangan
     });
 
     Route::prefix('akuntan')->name('akuntan.')->group(function () {
         Route::get('/dashboard', function () {
-            return view('akuntan.dashboard_akuntan'); // buat view ini nanti
+            return view('akuntan.dashboard_akuntan');
         })->name('dashboard');
-        // Tambahkan route untuk Akuntansi
-    });
-
-    // Distribusi (semua role bisa akses, atau nanti bisa dibatasi)
-    Route::prefix('distribusi')->name('distribusi.')->group(function () {
-        Route::get('/', [DistribusiController::class, 'index'])->name('index');
-        Route::get('/tambah', [DistribusiController::class, 'create'])->name('create');
-        Route::post('/', [DistribusiController::class, 'store'])->name('store');
-        Route::get('/{id}/total', [DistribusiController::class, 'kelolaTotal'])->name('total');
-        Route::post('/total/simpan', [DistribusiController::class, 'simpanTotal'])->name('total.simpan');
-        
-        // Cetak berita acara untuk semua sekolah dalam satu distribusi
-        Route::get('/{distribusiId}/berita-acara', [DistribusiController::class, 'cetakBeritaAcara'])
-             ->name('berita-acara');
     });
 });

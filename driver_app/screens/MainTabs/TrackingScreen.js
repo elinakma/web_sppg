@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, Alert, StyleSheet } from 'react-native';
 import * as Location from 'expo-location'; // library untuk akses GPS HP
-import { sendLocation, logout } from '../utils/api'; // kirim lokasi ke laravel dan logout
+import { sendLocation, logout } from '../../utils/api'; // kirim lokasi ke laravel dan logout
 
 export default function TrackingScreen({ navigation }) {
   const [isTracking, setIsTracking] = useState(false);

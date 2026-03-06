@@ -30,6 +30,35 @@
                     @enderror
                 </div>
 
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label class="form-label">
+                            Jumlah Porsi Kecil <span class="text-muted">(Opsional)</span>
+                        </label>
+                        <input type="number" name="porsi_kecil_default"
+                            class="form-control @error('porsi_kecil_default') is-invalid @enderror"
+                            value="{{ old('porsi_kecil_default') }}"
+                            min="0">
+                        @error('porsi_kecil_default')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            Jumlah Porsi Besar <span class="text-muted">(Opsional)</span>
+                        </label>
+                        <input type="number" name="porsi_besar_default"
+                            class="form-control @error('porsi_besar_default') is-invalid @enderror"
+                            value="{{ old('porsi_besar_default') }}"
+                            min="0">
+                        @error('porsi_besar_default')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+
                 <div class="mb-3">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-select @error('status') is-invalid @enderror" required>
@@ -42,7 +71,7 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="btn btn-success">Simpan</button>
+                <button type="submit" class="btn" style="background-color: #133b84; color: white;">Simpan</button>
                 <a href="{{ route('admin.sekolah.index') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>

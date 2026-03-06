@@ -9,11 +9,13 @@ class Distribusi extends Model
     protected $table = 'distribusi';
 
     protected $fillable = [
-        'tanggal_distribusi',
+        'tanggal_awal',
+        'tanggal_akhir',
         'status'
     ];
 
     protected $casts = [
-        'tanggal_distribusi' => 'date',
+        'tanggal_awal' => 'date',
+        'tanggal_akhir' => 'date',
     ];
 }

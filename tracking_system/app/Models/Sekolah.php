@@ -30,4 +30,9 @@ class Sekolah extends Model
     {
         return $query->where('status', 'Aktif');
     }
+
+    public function distribusiSekolah()
+    {
+        return $this->hasMany(DistribusiSekolah::class, 'id_sekolah', 'id');
+    }
 }

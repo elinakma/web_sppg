@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -32,7 +33,7 @@ class AuthController extends Controller
                 'Aslap'    => redirect()->route('aslap.dashboard'),
                 'Gizi'     => redirect()->route('gizi.dashboard'),
                 'Akuntan'  => redirect()->route('akuntan.dashboard'),
-                default    => redirect('/'), // fallback
+                default    => redirect('/'),
             };
         }
 

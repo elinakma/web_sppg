@@ -17,7 +17,10 @@ class DistribusiSekolah extends Model
         'menu_kering',
         'menu_basah',
         'total_penerima',
-        'keterangan'
+        'pagu_harian_sekolah',
+        'status',
+        'pengirim',
+        'waktu'
     ];
 
     public function sekolah()
@@ -30,5 +33,10 @@ class DistribusiSekolah extends Model
         $pagu = Pagu::getPaguAktif();
         return ($this->porsi_kecil_harian * $pagu->pagu_porsi_kecil) +
                ($this->porsi_besar_harian * $pagu->pagu_porsi_besar);
+    }
+
+    public function driverPengirim()
+    {
+        return $this->belongsTo(User::class, 'pengirim', 'id');
     }
 }

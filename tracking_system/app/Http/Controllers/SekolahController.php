@@ -7,9 +7,22 @@ use Illuminate\Http\Request;
 
 class SekolahController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $sekolah = Sekolah::orderBy('nama_sekolah')->get();
+        $search = request()->search;
+
+        // default sorting
+        $sortBy  = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
+
+        $sekolah = Sekolah::when($search, function ($query, $search) {
+                $query->where('nama_sekolah', 'like', "%{$search}%")
+                      ->orWhere('pic', 'like', "%{$search}%");
+            })
+            ->orderBy($sortBy, $sortDir)
+            ->paginate(8)
+            ->withQueryString();
+            
         return view('admin.sekolah.kelola-sekolah', compact('sekolah'));
     }
 
@@ -24,19 +37,14 @@ class SekolahController extends Controller
             'nama_sekolah' => 'required|string|max:100|unique:sekolah,nama_sekolah',
             'pic'          => 'required|string|max:100',
             'status'       => 'required|in:Aktif,Nonaktif',
-            'porsi_kecil_default' => 'required|integer|min:0',
-            'porsi_besar_default' => 'required|integer|min:0',
+            'porsi_kecil_default' => 'nullable|integer|min:0',
+            'porsi_besar_default' => 'nullable|integer|min:0',
         ]);
 
         Sekolah::create($request->all());
 
         return redirect()->route('admin.sekolah.index')
             ->with('success', 'Data sekolah berhasil ditambahkan.');
-    }
-
-    public function edit(Sekolah $sekolah)
-    {
-        return view('admin.sekolah.edit-sekolah', compact('sekolah'));
     }
 
     public function update(Request $request, Sekolah $sekolah)

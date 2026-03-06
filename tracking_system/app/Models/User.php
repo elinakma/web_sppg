@@ -78,4 +78,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(Location::class);
     }
+
+    public function pengiriman()
+    {
+        return $this->hasMany(Pengiriman::class, 'driver_id');
+    }
+
+    public function assignedSekolah()
+    {
+        return $this->belongsToMany(Sekolah::class, 'pengiriman', 'driver_id', 'sekolah_id')
+                    ->withTimestamps();
+    }
 }

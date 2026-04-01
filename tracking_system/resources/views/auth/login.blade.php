@@ -159,7 +159,7 @@
                             <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
                             <label class="form-check-label" for="remember">Ingat saya</label>
                         </div>
-                        <a href="#" class="forgot-link">Lupa password?</a>
+                        <a href="{{ route('password.request') }}"  class="forgot-link">Lupa password?</a>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Masuk</button>
                 </form>

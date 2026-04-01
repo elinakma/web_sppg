@@ -4,24 +4,32 @@ import {
   ImageBackground, StyleSheet, Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { login } from '../utils/api';
+import { forgotPassword } from '../utils/api';   // kita akan buat ini
 
-export default function LoginScreen({ navigation }) {
+export default function ForgotPasswordScreen({ navigation }) {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Isi email dan password!');
+  const handleSendResetLink = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Masukkan email Anda!');
       return;
     }
+
+    setLoading(true);
+
     try {
-      await login(email, password);
-      Alert.alert('Sukses', 'Login berhasil!');
-      navigation.replace('Main');
+      await forgotPassword(email);
+      Alert.alert(
+        'Berhasil', 
+        'Kami telah mengirimkan link reset password ke email Anda. Silakan cek inbox/spam.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (error) {
-      Alert.alert('Error', 'Login gagal. Cek email/password atau server.');
+      Alert.alert('Gagal', 'Email tidak ditemukan atau terjadi kesalahan.');
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,7 +40,10 @@ export default function LoginScreen({ navigation }) {
       imageStyle={{ opacity: 0.25 }}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Sistem Distribusi{'\n'}Makan Bergizi Gratis</Text>
+        <Text style={styles.title}>Lupa Password</Text>
+        <Text style={styles.subtitle}>
+          Masukkan email Anda untuk menerima link reset password
+        </Text>
 
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#6c757d" style={styles.icon} />
@@ -46,25 +57,21 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={20} color="#6c757d" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Masukkan Kata Sandi"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
         <TouchableOpacity 
-          style={styles.forgotBtn}
-          onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={styles.forgotText}>Lupa Password?</Text>
+          style={styles.sendBtn} 
+          onPress={handleSendResetLink}
+          disabled={loading}
+        >
+          <Text style={styles.sendText}>
+            {loading ? 'Mengirim...' : 'Kirim Link Reset Password'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginText}>MASUK</Text>
+        <TouchableOpacity 
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backText}>← Kembali ke Login</Text>
         </TouchableOpacity>
       </View>
     </ImageBackground>
@@ -92,11 +99,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#212529',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6c757d',
     textAlign: 'center',
     marginBottom: 25,
-    color: '#212529',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -105,35 +117,30 @@ const styles = StyleSheet.create({
     borderColor: '#dee2e6',
     borderRadius: 8,
     backgroundColor: '#f8f9fa',
-    marginBottom: 15,
+    marginBottom: 20,
     width: '100%',
     paddingHorizontal: 10,
   },
-  icon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    height: 45,
-  },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginBottom: 15,
-  },
-  forgotText: {
-    color: '#0d6efd',
-    fontSize: 13,
-  },
-  loginBtn: {
+  icon: { marginRight: 8 },
+  input: { flex: 1, height: 48 },
+  sendBtn: {
     backgroundColor: '#0d6efd',
     borderRadius: 8,
     width: '100%',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    marginBottom: 15,
   },
-  loginText: {
+  sendText: {
     color: '#fff',
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  backBtn: {
+    marginTop: 10,
+  },
+  backText: {
+    color: '#0d6efd',
+    fontSize: 14,
   },
 });

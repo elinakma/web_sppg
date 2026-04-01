@@ -1,7 +1,7 @@
 import axios from 'axios'; // library untuk melakukan request HTTP ke server laravel
 import * as SecureStore from 'expo-secure-store'; // library untuk menyimpan data secara aman di perangkat
 
-const API_BASE_URL = 'http://192.168.1.12:8000/api';
+const API_BASE_URL = 'https://dipsacaceous-dere-bridgette.ngrok-free.dev/api';
 
 export const login = async (email, password) => {
   try {
@@ -10,6 +10,16 @@ export const login = async (email, password) => {
     await SecureStore.setItemAsync('authToken', token);  // Simpan token
     return response.data; 
   } catch (error) {
+    throw error;
+  }
+};
+
+export const forgotPassword = async (email) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/forgot-password`, { email });
+    return response.data;
+  } catch (error) {
+    console.error('Error forgot password:', error.response?.data || error.message);
     throw error;
   }
 };

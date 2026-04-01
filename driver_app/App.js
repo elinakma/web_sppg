@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import LoginScreen from './screens/LoginScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import TrackingScreen from './screens/MainTabs/TrackingScreen';
 import DistribusiScreen from './screens/MainTabs/DistribusiScreen';
 import ProfilScreen from './screens/MainTabs/ProfilScreen';
@@ -51,6 +52,10 @@ export default function App() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen 
+          name="ForgotPassword" 
+          component={ForgotPasswordScreen} 
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

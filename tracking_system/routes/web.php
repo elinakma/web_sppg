@@ -8,17 +8,39 @@ use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\DistribusiController;
 use App\Http\Controllers\MapController;
 
-// Halaman login (bisa diakses tanpa auth)
+// Halaman login
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+
+// Forgot Password + Reset Password
+Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.store');
 
 // Logout (hanya bisa diakses jika sudah login)
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Group untuk semua halaman yang butuh login
 Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [AuthController::class, 'showVerifyEmail'])
+         ->name('verification.notice');
 
-    // Dashboard utama (untuk Admin)
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+         ->middleware('signed')
+         ->name('verification.verify');
+
+    Route::post('/email/resend', [AuthController::class, 'resendVerification'])
+         ->name('verification.send');
+});
+
+// Group untuk semua halaman yang butuh login
+Route::middleware('auth', 'verified')->group(function () {
+    // Profile routes
+    Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile.edit');
+    Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+
+
+    // Admin routes
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', function () {
             return view('admin.dashboard_admin');
@@ -26,6 +48,9 @@ Route::middleware('auth')->group(function () {
 
         // Resource routes
         Route::resource('pengguna', PenggunaController::class);
+        
+        Route::patch('pengguna/{user}/status', [PenggunaController::class, 'updateStatus'])
+             ->name('pengguna.status');
 
         // Sekolah routes
         Route::resource('sekolah', SekolahController::class);

@@ -62,6 +62,7 @@
                             <th>Email</th>
                             <th>Telepon</th>
                             <th>Role</th>
+                            <th>Status</th>
                             <th width="180">Aksi</th>
                         </tr>
                     </thead>
@@ -80,6 +81,20 @@
                                 <span class="role-badge role-{{ strtolower($user->role) }}">
                                     {{ ucfirst($user->role) }}
                                 </span>
+                            </td>
+                            <td class="text-center">
+                                <span id="status-text-{{ $user->id }}" 
+                                    class="badge {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $user->status }}
+                                </span>
+                                <!-- Toggle Status -->
+                                <label class="switch">
+                                    <input type="checkbox" 
+                                        class="toggle-status" 
+                                        data-id="{{ $user->id }}" 
+                                        {{ $user->status === 'Aktif' ? 'checked' : '' }}>
+                                    <span class="slider round"></span>
+                                </label>
                             </td>
                             <td class="text-center">
                                 <!-- Edit -->
@@ -389,6 +404,62 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 500);
         }, 3000);
     }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    document.querySelectorAll('.toggle-status').forEach(toggle => {
+        toggle.addEventListener('change', function(e) {
+
+            const userId = this.dataset.id;
+            const isActive = this.checked;
+            const statusText = document.getElementById(`status-text-${userId}`);
+
+            console.log(`%c🔄 Toggle diklik - User ID: ${userId} | Mau jadi: ${isActive ? 'Aktif' : 'Nonaktif'}`, 'color: orange');
+
+            if (!confirm(`Ubah status menjadi ${isActive ? 'Aktif' : 'Nonaktif'}?`)) {
+                this.checked = !isActive;
+                return;
+            }
+
+            console.log('📤 Mengirim request PATCH...');
+
+            fetch(`/admin/pengguna/${userId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? 
+                                   document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+                },
+                body: JSON.stringify({
+                    status: isActive ? 'Aktif' : 'Nonaktif'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    statusText.textContent = data.status;
+                    statusText.className = `badge ${data.status === 'Aktif' ? 'bg-success' : 'bg-secondary'}`;
+                    console.log('🎉 UI berhasil diupdate');
+                } else {
+                    alert(data.message || 'Gagal mengubah status');
+                    this.checked = !isActive;
+                }
+            })
+            .catch(error => {
+                alert('Gagal mengirim data. Lihat Console (F12) untuk detail lengkap.');
+                this.checked = !isActive;
+            });
+        });
+    });
 });
 </script>
 @endsection

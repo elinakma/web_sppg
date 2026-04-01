@@ -4,15 +4,36 @@
     </button>
 
     <div class="ms-auto d-flex align-items-center gap-3">
-        <span class="fw-semibold text-dark">
-            {{ Auth::user()->name ?? 'Admin' }}
-        </span>
 
-        <form action="{{ route('logout') }}" method="POST" class="m-0">
-            @csrf
-            <button class="btn btn-outline-danger btn-sm">
-                <i class="bi bi-box-arrow-right"></i>
+        <!-- Profile Dropdown -->
+        <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" 
+                    type="button" 
+                    id="profileDropdown" 
+                    data-bs-toggle="dropdown" 
+                    aria-expanded="false">
+                <i class="bi bi-person-circle fs-5"></i>
+                <span class="fw-semibold text-dark d-none d-md-inline">
+                    {{ Auth::user()->name }}
+                </span>
             </button>
-        </form>
+
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                <li>
+                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                        <i class="bi bi-person-gear me-2"></i> Edit Profile
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST" class="m-0">
+                        @csrf
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i> Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
     </div>
 </nav>

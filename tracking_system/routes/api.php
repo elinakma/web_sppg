@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
 use App\Models\User;
 Use App\Models\Sekolah;
 use App\Models\Pengiriman;
@@ -39,6 +40,30 @@ Route::post('/login', function (Request $request) {
 
     return response()->json(['error' => 'Email atau password salah'], 401);
 })->name('api.login');
+
+Route::post('/forgot-password', function (Request $request) {
+
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+
+    $status = Password::sendResetLink(
+        $request->only('email')
+    );
+
+    if ($status === Password::RESET_LINK_SENT) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Link reset password berhasil dikirim ke email'
+        ]);
+    }
+
+    return response()->json([
+        'success' => false,
+        'message' => 'Email tidak ditemukan'
+    ], 400);
+
+});
 
 // menerima data lokasi dari driver yang sudah terautentikasi dan validasi, lalu simpan ke database
 Route::middleware('auth:sanctum')->group(function () {
@@ -83,35 +108,43 @@ Route::get('/distribusi', function (Request $request) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        $today = Carbon::today()->format('Y-m-d');
+
         $sekolah = $user->assignedSekolah()
-                        ->with(['distribusiSekolah' => function ($q) {
-                            $q->whereDate('tanggal_harian', '>=', Carbon::now()->startOfWeek())
-                              ->whereDate('tanggal_harian', '<=', Carbon::now()->endOfWeek());
+                        ->with(['distribusiSekolah' => function ($q) use ($today) {
+                            $q->whereDate('tanggal_harian', $today);
                         }])
                         ->get()
-                        ->map(function ($sekolah) {
+                        ->map(function ($sekolah) use ($today) {
                             $distribusi = $sekolah->distribusiSekolah()
-                                ->whereDate('tanggal_harian', today())
+                                ->whereDate('tanggal_harian', $today)
                                 ->first();
 
+                            // Hanya tampilkan jika sudah ada record distribusi hari ini
+                            if (!$distribusi) {
+                                return null; // skip sekolah yang belum ada distribusinya
+                            }
+
                             return [
-                                'id_sekolah' => $sekolah->id,
-                                'id_distribusi_sekolah' => $distribusi?->id,
-                                'nama_sekolah' => $sekolah->nama_sekolah,
-                                'pic' => $sekolah->pic,
-                                'porsi_kecil_default' => $sekolah->porsi_kecil_default,
-                                'porsi_besar_default' => $sekolah->porsi_besar_default,
-                                'status_harian' => $distribusi?->status ?? 'draf',
-                                'pagu_harian' => $distribusi?->pagu_harian_sekolah,
+                                'id_sekolah'           => $sekolah->id,
+                                'id_distribusi_sekolah'=> $distribusi->id,
+                                'nama_sekolah'         => $sekolah->nama_sekolah,
+                                'pic'                  => $sekolah->pic,
+                                'porsi_kecil_default'  => $sekolah->porsi_kecil_default,
+                                'porsi_besar_default'  => $sekolah->porsi_besar_default,
+                                'status_harian'        => $distribusi->status ?? 'draf',
+                                'pagu_harian'          => $distribusi->pagu_harian_sekolah,
                             ];
-                        });
+                        })
+                        ->filter() // hapus null
+                        ->values();
 
         return response()->json([
             'success' => true,
             'sekolah' => $sekolah,
         ]);
     } catch (\Exception $e) {
-        \Log::error('Error di /api/distribusi', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        \Log::error('Error di /api/distribusi', ['error' => $e->getMessage()]);
         return response()->json(['error' => 'Server error: ' . $e->getMessage()], 500);
     }
 })->middleware('auth:sanctum');

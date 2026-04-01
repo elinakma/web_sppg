@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class PenggunaController extends Controller
 {
@@ -70,6 +71,55 @@ class PenggunaController extends Controller
 
         return redirect()->route('admin.pengguna.index')
                          ->with('success', 'Data pengguna berhasil diperbarui.');
+    }
+
+    public function updateStatus(Request $request, User $user)
+    {
+        Log::info('=== UPDATE STATUS DIPANGGIL ===', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'current_status' => $user->status,
+            'requested_status' => $request->status,
+            'request_all' => $request->all()
+        ]);
+
+        $request->validate([
+            'status' => 'required|in:Aktif,Nonaktif'
+        ]);
+
+        // Cegah admin terakhir dinonaktifkan
+        if ($user->role === 'Admin' && $request->status === 'Nonaktif') {
+            $adminCount = User::where('role', 'Admin')
+                            ->where('status', 'Aktif')
+                            ->count();
+
+            Log::warning('Percobaan menonaktifkan admin terakhir', [
+                'admin_id' => $user->id,
+                'admin_count' => $adminCount
+            ]);
+
+            if ($adminCount <= 1) {
+                Log::info('Ditolak: Admin terakhir');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak dapat menonaktifkan admin terakhir.'
+                ], 422);
+            }
+        }
+
+        // Update status
+        $user->update(['status' => $request->status]);
+
+        Log::info('Status berhasil diupdate', [
+            'user_id' => $user->id,
+            'new_status' => $user->fresh()->status
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'status'  => $user->fresh()->status,
+            'message' => 'Status berhasil diperbarui.'
+        ]);
     }
 
     public function destroy(User $pengguna)

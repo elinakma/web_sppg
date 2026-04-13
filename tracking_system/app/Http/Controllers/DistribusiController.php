@@ -68,7 +68,6 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::findOrFail($id);
 
-        // Ambil sekolah yang sekarang aktif
         $sekolahAktif = Sekolah::aktif()->get();
 
         // Ambil ID sekolah yang sudah tersimpan di distribusi ini
@@ -114,7 +113,7 @@ class DistribusiController extends Controller
 
         // Preview default (jika belum ada data real di hari itu)
         $previewHarian = [];
-        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal); // Pakai tanggal_awal, bukan tanggal_distribusi
+        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
         foreach ($hariList as $tanggalStr) {
             $totalKecil = $sekolahAktif->sum('porsi_kecil_default');
             $totalBesar = $sekolahAktif->sum('porsi_besar_default');

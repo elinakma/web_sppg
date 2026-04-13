@@ -203,8 +203,12 @@
                                         {{ \Carbon\Carbon::parse($item->tanggal_harian)->format('d M Y') }} 
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-{{ $item->status == 'dikirim' ? 'success' : 'warning' }}">
-                                            {{ ucfirst($item->status) }}
+                                        <span class="badge 
+                                            @if($item->status == 'selesai') bg-success
+                                            @elseif($item->status == 'dikirim') bg-warning text-dark
+                                            @else bg-primary
+                                            @endif">
+                                            {{ $item->status == 'draf' ? 'Draf' : ($item->status == 'dikirim' ? 'Dikirim' : 'Selesai') }}
                                         </span>
                                     </td>
                                     <td>

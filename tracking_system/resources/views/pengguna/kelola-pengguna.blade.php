@@ -99,10 +99,15 @@
                             <td class="text-center">
                                 <!-- Edit -->
                                 <button type="button" 
-                                    class="btn btn-sm btn-warning action-btn edit-btn" data-bs-toggle="modal" 
+                                    class="btn btn-sm btn-warning action-btn edit-btn" 
+                                    data-bs-toggle="modal" 
                                     data-bs-target="#editPenggunaModal" 
-                                    data-id="{{ $user->id }}">
-                                <i class="bi bi-pencil-square"> Edit</i>
+                                    data-id="{{ $user->id }}"
+                                    data-name="{{ $user->name }}"
+                                    data-email="{{ $user->email }}"
+                                    data-telepon="{{ $user->telepon }}"
+                                    data-role="{{ $user->role }}">
+                                    <i class="bi bi-pencil-square"> Edit</i>
                                 </button>
 
                                 <!-- Hapus -->
@@ -353,15 +358,19 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // Input data modal edit
-    document.querySelectorAll('[data-bs-target="#editPenggunaModal"]').forEach(btn => {
+    document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const userId = this.dataset.id;
             const form = document.getElementById('editForm');
 
-            form.action = '{{ route("admin.pengguna.update", ":id") }}'.replace(':id', userId);
+            form.action = '{{ route("admin.pengguna.update", ":id") }}'.replace(':id', this.dataset.id);
+
+            form.querySelector('input[name="name"]').value   = this.dataset.name;
+            form.querySelector('input[name="email"]').value  = this.dataset.email;
+            form.querySelector('input[name="telepon"]').value = this.dataset.telepon ?? '';
+            form.querySelector('select[name="role"]').value  = this.dataset.role;
 
             // Kosongkan password
-            form.querySelector('input[name="password"]').value = '';
+            form.querySelector('input[name="password"]').value            = '';
             form.querySelector('input[name="password_confirmation"]').value = '';
         });
     });

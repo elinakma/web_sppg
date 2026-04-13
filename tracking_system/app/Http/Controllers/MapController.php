@@ -13,22 +13,44 @@ class MapController extends Controller
     public function index()
     {
         $drivers = User::where('role', 'Driver')
-                       ->with(['locations' => function ($query) {
-                           $query->latest()->limit(1);
-                       }])
-                       ->get();
+                    ->with(['locations' => function ($query) {
+                        $query->latest()->limit(1);
+                    }])
+                    ->get();
 
         $sekolahAktif = Sekolah::aktif()->orderBy('nama_sekolah')->get();
 
         $assignedSekolah = Pengiriman::whereIn('driver_id', $drivers->pluck('id'))
-                                 ->get()
-                                 ->groupBy('driver_id')
-                                 ->map(fn($items) => $items->pluck('sekolah_id')->toArray())
-                                 ->toArray();
+                                ->get()
+                                ->groupBy('driver_id')
+                                ->map(fn($items) => $items->pluck('sekolah_id')->toArray())
+                                ->toArray();
         
         $allAssignedSekolah = Pengiriman::pluck('sekolah_id')->toArray();
 
+        // Otomatis sinkronisasi pengirim ke distribusi hari ini
+        // berdasarkan assignment yang sudah ada, tanpa perlu admin simpan ulang
+        $this->sinkronisasiPengirimHariIni();
+
         return view('admin.monitoring.map', compact('drivers', 'sekolahAktif', 'assignedSekolah', 'allAssignedSekolah'));
+    }
+
+    // Method baru: sinkronisasi pengirim ke distribusi hari ini
+    private function sinkronisasiPengirimHariIni()
+    {
+        $today = now()->toDateString();
+
+        $assignments = Pengiriman::all();
+
+        foreach ($assignments as $assignment) {
+            DistribusiSekolah::where('id_sekolah', $assignment->sekolah_id)
+                ->whereDate('tanggal_harian', $today)
+                ->whereNull('pengirim') // hanya isi jika belum ada pengirim
+                ->update([
+                    'pengirim' => $assignment->driver_id,
+                    'status'   => 'draf',
+                ]);
+        }
     }
 
     public function storePengiriman(Request $request)
@@ -42,7 +64,7 @@ class MapController extends Controller
         $driverId   = $request->driver_id;
         $sekolahIds = $request->sekolah_ids;
 
-        // Cek apakah ada sekolah yang sudah diassign ke driver lain
+        // Cek konflik dengan driver lain
         $conflicts = Pengiriman::whereIn('sekolah_id', $sekolahIds)
                             ->where('driver_id', '!=', $driverId)
                             ->pluck('sekolah_id')
@@ -53,26 +75,28 @@ class MapController extends Controller
             return back()->withErrors(['sekolah_ids' => "Sekolah berikut sudah diassign ke driver lain: {$conflictNames}"]);
         }
         
-        // Hapus assignment lama
+        // Hapus assignment lama milik driver ini saja
         Pengiriman::where('driver_id', $driverId)->delete();
 
-        // Simpan pembaruan assignment
         foreach ($sekolahIds as $sekolahId) {
             Pengiriman::create([
-                'driver_id'   => $driverId,
-                'sekolah_id'  => $sekolahId,
+                'driver_id'  => $driverId,
+                'sekolah_id' => $sekolahId,
             ]);
-            
-            // Otomatis isi kolom pengirim di distribusi_sekolah untuk sekolah ini
+        }
+
+        // Update pengirim di SEMUA distribusi yang belum dikirim untuk sekolah ini
+        // (bukan hanya hari ini, tapi seluruh distribusi yang masih draf)
+        foreach ($sekolahIds as $sekolahId) {
             DistribusiSekolah::where('id_sekolah', $sekolahId)
-                            ->update([
-                                'pengirim' => $driverId,
-                                'status'   => 'draf'
-                            ]);
+                ->where('status', 'draf')
+                ->update([
+                    'pengirim' => $driverId,
+                ]);
         }
 
         return redirect()->route('admin.monitoring.map')
-                         ->with('success', 'Sekolah berhasil dibagikan ke driver.');
+                        ->with('success', 'Sekolah berhasil dibagikan ke driver.');
     }
 
     public function destroyPengiriman(Pengiriman $pengiriman)

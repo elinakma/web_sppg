@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PaguController;
@@ -35,6 +36,9 @@ Route::middleware('auth')->group(function () {
 
 // Group untuk semua halaman yang butuh login
 Route::middleware('auth', 'verified')->group(function () {
+    // Dashboard admin
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
     // Profile routes
     Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile.edit');
     Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');

@@ -15,6 +15,29 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::orderBy('tanggal_awal', 'desc')
             ->paginate(8);
+
+        // status display untuk setiap distribusi
+        foreach ($distribusi as $item) {
+            $totalRecords = DistribusiSekolah::where('id_distribusi', $item->id)->count();
+            $selesai = DistribusiSekolah::where('id_distribusi', $item->id)
+                        ->where('status', 'selesai')->count();
+            $dikirim = DistribusiSekolah::where('id_distribusi', $item->id)
+                        ->where('status', 'dikirim')->count();
+
+            if ($totalRecords == 0) {
+                $item->status_display = 'Draf';
+                $item->status_color = 'bg-primary';
+            } elseif ($selesai == $totalRecords) {
+                $item->status_display = 'Selesai';
+                $item->status_color = 'bg-success';
+            } elseif ($dikirim > 0 || $selesai > 0) {
+                $item->status_display = 'Diproses';
+                $item->status_color = 'bg-warning text-dark';
+            } else {
+                $item->status_display = 'Draf';
+                $item->status_color = 'bg-primary';
+            }
+        }
             
         return view('admin.distribusi.kelola-distribusi', compact('distribusi'));
     }
@@ -45,7 +68,21 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::findOrFail($id);
 
+        // Ambil sekolah yang sekarang aktif
         $sekolahAktif = Sekolah::aktif()->get();
+
+        // Ambil ID sekolah yang sudah tersimpan di distribusi ini
+        $idSekolahTersimpan = DistribusiSekolah::where('id_distribusi', $id)
+            ->distinct()
+            ->pluck('id_sekolah');
+
+        // Sekolah yang sudah tersimpan tapi sekarang nonaktif
+        $sekolahNonaktifTersimpan = Sekolah::whereIn('id', $idSekolahTersimpan)
+            ->where('status', '!=', 'Aktif')
+            ->get();
+
+        // Gabungkan: sekolah aktif + sekolah nonaktif yang sudah tersimpan di distribusi ini
+        $sekolahAktif = $sekolahAktif->merge($sekolahNonaktifTersimpan)->unique('id');
 
         $pagu = Pagu::getPaguAktif();
 
@@ -237,30 +274,48 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::findOrFail($distribusiId);
 
-        // Ambil semua data distribusi sekolah untuk minggu ini, group by hari & sekolah
         $distribusiSekolah = DistribusiSekolah::with('sekolah')
             ->where('id_distribusi', $distribusiId)
             ->orderBy('tanggal_harian')
+            ->orderBy('id_sekolah')
             ->get();
 
         if ($distribusiSekolah->isEmpty()) {
             return back()->with('error', 'Belum ada data sekolah untuk distribusi ini.');
         }
 
-        $pdf = \PDF::loadView('admin.distribusi.berita-acara-pdf', compact(
-            'distribusi',
-            'distribusiSekolah'
-        ));
+        try {
+            // Optimasi memory
+            ini_set('memory_limit', '2048M');
 
-        $pdf->setPaper('A4', 'portrait');
-        $pdf->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-        ]);
+            $pdf = \PDF::loadView('admin.distribusi.berita-acara-pdf', compact(
+                'distribusi',
+                'distribusiSekolah'
+            ));
 
-        $filename = "Berita_Acara_Distribusi_" . $distribusi->tanggal_awal->format('d-m-Y') . ".pdf";
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'dpi' => 100,
+                'isPhpEnabled' => false,
+            ]);
 
-        return $pdf->stream($filename);
+            $filename = "Berita_Acara_Distribusi_" . 
+                        $distribusi->tanggal_awal->format('d-m-Y') . ".pdf";
+
+            return $pdf->stream($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generate PDF Berita Acara', [
+                'distribusi_id' => $distribusiId,
+                'sekolah_count' => $distribusiSekolah->count(),
+                'message' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Gagal generate PDF. Data terlalu besar.');
+        }
     }
 
     public function destroy($id)

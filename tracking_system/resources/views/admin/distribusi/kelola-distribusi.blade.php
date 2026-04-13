@@ -55,23 +55,28 @@
                                 {{ \Carbon\Carbon::parse($item->tanggal_akhir)->format('d M Y') }}
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-info text-dark">
-                                    {{ ucfirst($item->status) }}
+                                <span class="badge {{ $item->status_color ?? 'bg-secondary' }}">
+                                    {{ $item->status_display ?? ucfirst($item->status) }}
                                 </span>
                             </td>
                             <td class="text-center d-flex justify-content-center flex-wrap gap-1">
+                                @if($item->status_display !== 'Selesai')
                                 <a href="{{ route('admin.distribusi.total', $item->id) }}"
-                                   class="btn btn-sm btn-warning action-btn">
+                                class="btn btn-sm btn-warning action-btn">
                                     <i class="bi bi-truck"></i> Tindak Lanjut
                                 </a>
+                                @endif
+
                                 <a href="{{ route('admin.distribusi.detail', $item->id) }}" class="btn btn-sm btn-primary me-1">
                                     <i class="bi bi-eye"></i> Detail
                                 </a>
+
                                 <a href="{{ route('admin.distribusi.berita-acara', $item->id) }}" 
                                 class="btn btn-sm action-btn" style="background-color: #133b84; color: white;" target="_blank">
                                     <i class="bi bi-printer"></i> Cetak
                                 </a>
-                                <!-- Tombol Hapus -->
+
+                                @if($item->status_display !== 'Selesai')
                                 <form action="{{ route('admin.distribusi.destroy', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
@@ -80,6 +85,7 @@
                                         <i class="bi bi-trash"></i> Hapus
                                     </button>
                                 </form>
+                                @endif
                             </td>
                         </tr>
                         @empty

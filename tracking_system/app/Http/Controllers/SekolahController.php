@@ -53,8 +53,8 @@ class SekolahController extends Controller
         'nama_sekolah'       => 'required|string|max:100|unique:sekolah,nama_sekolah,' . $sekolah->id,
         'pic'                   => 'required|string|max:100',
         'status'                => 'required|in:Aktif,Nonaktif',
-        'porsi_kecil_default'   => 'required|integer|min:0',
-        'porsi_besar_default'   => 'required|integer|min:0',
+        'porsi_kecil_default'   => 'nullable|integer|min:0',
+        'porsi_besar_default'   => 'nullable|integer|min:0',
     ]);
 
     $sekolah->update($request->all());

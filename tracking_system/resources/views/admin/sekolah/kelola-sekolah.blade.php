@@ -111,34 +111,34 @@
                                                 <div class="col-md-6">
                                                     <label class="form-label">Nama Sekolah</label>
                                                     <input type="text" name="nama_sekolah" class="form-control @error('nama_sekolah') is-invalid @enderror" 
-                                                           value="{{ old('nama_sekolah', $s->nama_sekolah) }}" required>
+                                                            value="{{ old('nama_sekolah', $s->nama_sekolah) }}" required>
                                                     @error('nama_sekolah') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
 
                                                 <div class="col-md-6">
                                                     <label class="form-label">PIC</label>
                                                     <input type="text" name="pic" class="form-control @error('pic') is-invalid @enderror" 
-                                                           value="{{ old('pic', $s->pic) }}" required>
+                                                            value="{{ old('pic', $s->pic) }}" required>
                                                     @error('pic') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
 
                                                 <div class="col-md-3">
                                                     <label class="form-label">Porsi Kecil</label>
                                                     <input type="number" name="porsi_kecil_default" min="0" class="form-control @error('porsi_kecil_default') is-invalid @enderror" 
-                                                           value="{{ old('porsi_kecil_default', $s->porsi_kecil_default) }}" required>
+                                                            value="{{ old('porsi_kecil_default', $s->porsi_kecil_default) }}">
                                                     @error('porsi_kecil_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
 
                                                 <div class="col-md-3">
                                                     <label class="form-label">Porsi Besar</label>
                                                     <input type="number" name="porsi_besar_default" min="0" class="form-control @error('porsi_besar_default') is-invalid @enderror" 
-                                                           value="{{ old('porsi_besar_default', $s->porsi_besar_default) }}" required>
+                                                            value="{{ old('porsi_besar_default', $s->porsi_besar_default) }}">
                                                     @error('porsi_besar_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
 
                                                 <div class="col-md-12">
                                                     <label class="form-label">Status</label>
-                                                    <select name="status" class="form-select @error('status') is-invalid @enderror" required>
+                                                    <select name="status" class="form-select @error('status') is-invalid @enderror">
                                                         <option value="Aktif" {{ old('status', $s->status) == 'Aktif' ? 'selected' : '' }}>Aktif</option>
                                                         <option value="Nonaktif" {{ old('status', $s->status) == 'Nonaktif' ? 'selected' : '' }}>Nonaktif</option>
                                                     </select>
@@ -154,6 +154,7 @@
                                 </div>
                             </div>
                         </div>
+                        
                         @empty
                         <tr>
                             <td colspan="9" class="text-center text-muted py-4">

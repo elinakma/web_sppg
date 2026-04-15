@@ -42,7 +42,7 @@ export default function TrackingScreen() {
         {/* KIRI (LOGO + JUDUL) */}
         <View style={styles.leftGroup}>
             <Image 
-            source={require('../../assets/logo-sppg.png')} 
+            source={require('../../assets/logo.png')} 
             style={styles.logo}
             resizeMode="contain"
             />

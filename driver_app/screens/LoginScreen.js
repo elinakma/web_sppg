@@ -9,19 +9,35 @@ import { login } from '../utils/api';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Isi email dan password!');
       return;
     }
+
+    setLoading(true);
+
     try {
-      await login(email, password);
-      Alert.alert('Sukses', 'Login berhasil!');
-      navigation.replace('Main');
+      const response = await login(email, password);
+      
+      // Cek role dan arahkan ke halaman yang sesuai
+      if (response.user.role === 'Driver') {
+        navigation.replace('Main');        // Dashboard + Distribusi Driver
+      } 
+      else if (response.user.role === 'Aslap') {
+        navigation.replace('AslapMain');   // Halaman Aslap
+      } 
+      else {
+        Alert.alert('Error', 'Role tidak didukung di aplikasi mobile');
+      }
+
     } catch (error) {
-      Alert.alert('Error', 'Login gagal. Cek email/password atau server.');
+      Alert.alert('Login Gagal', error.response?.data?.error || 'Cek email/password Anda');
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 

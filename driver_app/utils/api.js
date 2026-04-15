@@ -24,6 +24,7 @@ export const forgotPassword = async (email) => {
   }
 };
 
+// ============ DRIVER API ============
 // Mengirim lokasi GPS ke server. Cek token dulu sebelum mengirim. 
 export const sendLocation = async (latitude, longitude) => {
   try {
@@ -128,4 +129,43 @@ export const stopTracking = async () => {
   } catch (error) {
     throw error;
   }
+};
+
+
+// ============ ASLAP API ============
+
+export const getAslapDriverLocations = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.get(`${API_BASE_URL}/aslap/driver-locations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.drivers || [];
+};
+
+export const getAslapPengirimanHariIni = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.get(`${API_BASE_URL}/aslap/pengiriman-hari-ini`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data || [];
+};
+
+export const getAslapPenugasanDriver = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.get(`${API_BASE_URL}/aslap/penugasan-driver`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.drivers || [];
+};
+
+export const getAslapDistribusi = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.get(`${API_BASE_URL}/aslap/distribusi`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.distribusi || [];
 };

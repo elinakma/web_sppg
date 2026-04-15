@@ -10,7 +10,7 @@ use App\Models\Pengiriman;
 use App\Models\DistribusiSekolah;
 use Carbon\Carbon;
 
-// Route login untuk driver (mobile app) dengan generate token menggunakan Laravel Sanctum
+// Route login untuk mobile app (Driver dan Aslap)
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
         'email' => ['required', 'email'],
@@ -20,25 +20,31 @@ Route::post('/login', function (Request $request) {
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
 
-        if ($user->isDriver()) {
-            // Buat token Sanctum
-            $token = $user->createToken('driver-token')->plainTextToken;
-
+        // Hanya izinkan Driver dan Aslap
+        if (!in_array($user->role, ['Driver', 'Aslap'])) {
             return response()->json([
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                ]
-            ]);
+                'error' => 'Role ini tidak diizinkan login di aplikasi mobile'
+            ], 403);
         }
 
-        return response()->json(['error' => 'Hanya driver yang diizinkan login via API ini'], 403);
+        // Buat token Sanctum
+        $token = $user->createToken('mobile-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ]
+        ]);
     }
 
-    return response()->json(['error' => 'Email atau password salah'], 401);
+    return response()->json([
+        'error' => 'Email atau password salah'
+    ], 401);
 })->name('api.login');
 
 Route::post('/forgot-password', function (Request $request) {
@@ -277,3 +283,116 @@ Route::post('/stop-tracking', function (Request $request) {
     ]);
 
 })->middleware('auth:sanctum');
+
+
+// ============ ASLAP ROUTES ============
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Middleware cek role aslap
+    // Monitoring peta: ambil semua lokasi driver terbaru
+    Route::get('/aslap/driver-locations', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $drivers = User::where('role', 'Driver')
+            ->with(['locations' => function ($q) {
+                $q->latest()->limit(1);
+            }])
+            ->get()
+            ->map(function ($driver) {
+                return [
+                    'id'        => $driver->id,
+                    'name'      => $driver->name,
+                    'email'     => $driver->email,
+                    'locations' => $driver->locations,
+                ];
+            });
+
+        return response()->json(['success' => true, 'drivers' => $drivers]);
+    });
+
+    // Pengiriman hari ini (semua driver)
+    Route::get('/aslap/pengiriman-hari-ini', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $today = now()->toDateString();
+
+        $data = DistribusiSekolah::whereDate('tanggal_harian', $today)
+            ->with('sekolah', 'driverPengirim')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id'           => $item->id,
+                    'nama_sekolah' => $item->sekolah?->nama_sekolah ?? '-',
+                    'driver'       => $item->driverPengirim?->name ?? '-',
+                    'status'       => $item->status,
+                    'waktu'        => $item->waktu,
+                    'tanggal'      => $item->tanggal_harian,
+                ];
+            });
+
+        return response()->json(['success' => true, 'data' => $data]);
+    });
+
+    // Penugasan driver (driver + sekolah yang diassign)
+    Route::get('/aslap/penugasan-driver', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $drivers = User::where('role', 'Driver')
+            ->with('assignedSekolah')
+            ->get()
+            ->map(function ($driver) {
+                return [
+                    'id'              => $driver->id,
+                    'name'            => $driver->name,
+                    'email'           => $driver->email,
+                    'jumlah_sekolah'  => $driver->assignedSekolah->count(),
+                    'sekolah'         => $driver->assignedSekolah->map(fn($s) => [
+                        'id'           => $s->id,
+                        'nama_sekolah' => $s->nama_sekolah,
+                        'pic'          => $s->pic,
+                    ]),
+                ];
+            });
+
+        return response()->json(['success' => true, 'drivers' => $drivers]);
+    });
+
+    // Data distribusi (list mingguan)
+    Route::get('/aslap/distribusi', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $distribusi = \App\Models\Distribusi::orderBy('tanggal_awal', 'desc')
+            ->get()
+            ->map(function ($item) {
+                $total   = DistribusiSekolah::where('id_distribusi', $item->id)->count();
+                $selesai = DistribusiSekolah::where('id_distribusi', $item->id)->where('status', 'selesai')->count();
+                $dikirim = DistribusiSekolah::where('id_distribusi', $item->id)->where('status', 'dikirim')->count();
+
+                if ($total == 0) $status = 'Draf';
+                elseif ($selesai == $total) $status = 'Selesai';
+                elseif ($dikirim > 0 || $selesai > 0) $status = 'Diproses';
+                else $status = 'Draf';
+
+                return [
+                    'id'            => $item->id,
+                    'tanggal_awal'  => $item->tanggal_awal,
+                    'tanggal_akhir' => $item->tanggal_akhir,
+                    'status'        => $status,
+                ];
+            });
+
+        return response()->json(['success' => true, 'distribusi' => $distribusi]);
+    });
+});

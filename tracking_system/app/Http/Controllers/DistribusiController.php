@@ -220,13 +220,39 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::findOrFail($id);
 
+        // Status display berdasarkan distribusi_sekolah
+        $totalRecords = DistribusiSekolah::where('id_distribusi', $distribusi->id)->count();
+        $selesai = DistribusiSekolah::where('id_distribusi', $distribusi->id)
+                    ->where('status', 'selesai')->count();
+        $dikirim = DistribusiSekolah::where('id_distribusi', $distribusi->id)
+                    ->where('status', 'dikirim')->count();
+
+        if ($totalRecords == 0) {
+            $distribusi->status_display = 'Draf';
+            $distribusi->status_color   = 'bg-primary';
+        } elseif ($selesai == $totalRecords) {
+            $distribusi->status_display = 'Selesai';
+            $distribusi->status_color   = 'bg-success';
+        } elseif ($dikirim > 0 || $selesai > 0) {
+            $distribusi->status_display = 'Diproses';     // atau 'Dikirim' kalau mau
+            $distribusi->status_color   = 'bg-warning text-dark';
+        } else {
+            $distribusi->status_display = 'Draf';
+            $distribusi->status_color   = 'bg-primary';
+        }
+        
+        $idSekolahTersimpan = DistribusiSekolah::where('id_distribusi', $id)
+            ->distinct()->pluck('id_sekolah');
+
         $sekolahAktif = Sekolah::aktif()->get();
+        $sekolahNonaktifTersimpan = Sekolah::whereIn('id', $idSekolahTersimpan)
+            ->where('status', '!=', 'Aktif')->get();
+        $sekolahAktif = $sekolahAktif->merge($sekolahNonaktifTersimpan)->unique('id');
 
-        $pagu = Pagu::getPaguAktif();
+        $pagu = Pagu::getPaguAktif(); // hanya untuk referensi tampilan, BUKAN kalkulasi
 
-        // Generate list hari dari tanggal_awal sampai tanggal_akhir
         $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
-        $end = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
+        $end   = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
         $hariList = [];
         $current = $start->clone();
         while ($current->lte($end)) {
@@ -234,7 +260,6 @@ class DistribusiController extends Controller
             $current->addDay();
         }
 
-        // Data real distribusi sekolah
         $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)
             ->with('sekolah')
             ->get();
@@ -242,11 +267,11 @@ class DistribusiController extends Controller
         $dataDistribusi = $dataDistribusiRaw->groupBy('tanggal_harian')
             ->map(fn($items) => $items->keyBy('id_sekolah'));
 
-        // Hitung summary per hari (real data)
-        $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) use ($pagu) {
+        // Gunakan pagu_harian_sekolah yang sudah tersimpan, BUKAN hitung ulang
+        $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) {
             $totalKecil = $items->sum('porsi_kecil_harian');
             $totalBesar = $items->sum('porsi_besar_harian');
-            $paguHarian = ($totalKecil * $pagu->pagu_porsi_kecil) + ($totalBesar * $pagu->pagu_porsi_besar);
+            $paguHarian = $items->sum('pagu_harian_sekolah'); // baca dari DB
 
             return [
                 'total_porsi_kecil' => $totalKecil,
@@ -255,7 +280,6 @@ class DistribusiController extends Controller
             ];
         })->toArray();
 
-        // Hitung grand total mingguan
         $grandTotalPagu = collect($summaryHarian)->sum('pagu_harian');
 
         return view('admin.distribusi.detail-distribusi', compact(

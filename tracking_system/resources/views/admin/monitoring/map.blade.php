@@ -124,8 +124,9 @@
                         <tr class="text-center">
                             <th width="5%">No</th>
                             <th class="text-start">Driver</th>
-                            <th>Email</th>
-                            <th width="15%">Sekolah</th>
+                            <th>Status</th>
+                            <th width="30%">Email</th>
+                            <th width="15%">Jumlah Sekolah</th>
                             <th width="18%">Aksi</th>
                         </tr>
                     </thead>
@@ -139,15 +140,29 @@
                                     <span class="badge-driver">Driver Aktif</span>
                                 </td>
 
-                                <td>{{ $driver->email }}</td>
+                                <td class="text-center align-middle">
+                                    @if($driver->sedang_berjalan)
+                                        <span class="badge rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                            style="background-color:#198754;">
+                                            <i class="bi bi-truck"></i> Sedang Berjalan
+                                        </span>
+                                    @else
+                                        <span class="badge rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                            style="background-color:#6c757d;">
+                                            <i class="bi bi-pause-circle"></i> Tidak Berjalan
+                                        </span>
+                                    @endif
+                                </td>
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">{{ $driver->email }}</td>
+
+                                <td class="text-center align-middle">
                                     <span class="badge bg-info">
                                         {{ $driver->assignedSekolah->count() }} Sekolah
                                     </span>
                                 </td>
 
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     <button class="btn btn-sm btn-warning action-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#assignModal"
@@ -235,7 +250,7 @@
             <h5 class="mb-0">
                 <i class="bi bi-truck me-2"></i>Monitoring Driver Real-time
             </h5>
-            <span class="small">Update terakhir: {{ now()->format('d M Y H:i:s') }} WIB</span>
+            <span class="small" id="lastUpdate">Menunggu data...</span>
         </div>
 
         <div class="card-body p-4">
@@ -418,6 +433,16 @@
                 fetch('{{ route('api.drivers.locations') }}')
                     .then(response => response.json())
                     .then(async data => {
+                        const activeDrivers = data.filter(d => d.locations.length > 0);
+
+                        // Update teks hanya jika ada driver aktif
+                        if (activeDrivers.length > 0) {
+                            const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+                            document.getElementById('lastUpdate').textContent = `Update terakhir: ${now} WIB`;
+                        } else {
+                            document.getElementById('lastUpdate').textContent = 'Tidak ada driver aktif';
+                        }
+                        
                         // Loop proses ambil data setiap driver
                         for (const driver of data) {
                                 if (driver.locations.length > 0) { 

@@ -71,6 +71,8 @@ export default function DistribusiScreen() {
 
   const progress = totalSekolah === 0 ? 0 : selesai / totalSekolah;
 
+  const semuaSelesai = totalSekolah > 0 && selesai === totalSekolah;
+
   // ================= START TRACKING =================
 
   const handleStartTracking = () => {
@@ -203,6 +205,42 @@ export default function DistribusiScreen() {
     );
 
   };
+
+  // ================= Button Tracking =================  
+  
+  {/* Sembunyikan semua tombol jika semua sekolah sudah selesai */}
+  {!semuaSelesai && (
+    <>
+      {!isTracking ? (
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleStartTracking}
+        >
+          <Icon name="play-circle" size={22} color="#fff" />
+          <Text style={styles.startText}>Mulai Tracking</Text>
+        </TouchableOpacity>
+
+      ) : (
+
+        <TouchableOpacity
+          style={styles.stopButton}
+          onPress={handleStopTracking}
+        >
+          <Icon name="stop-circle" size={22} color="#fff" />
+          <Text style={styles.startText}>Stop Tracking</Text>
+        </TouchableOpacity>
+
+      )}
+    </>
+  )}
+
+  {/* Tampilkan pesan jika semua selesai */}
+  {semuaSelesai && (
+    <View style={styles.doneBox}>
+      <Icon name="check-circle" size={22} color="#16a34a" />
+      <Text style={styles.doneText}>Semua pengiriman selesai hari ini</Text>
+    </View>
+  )}
 
   // ================= STATUS =================
 
@@ -509,6 +547,26 @@ const styles = StyleSheet.create({
     color:"#fff",
     fontWeight:"bold",
     marginLeft:8
-  }
+  },
+
+  doneBox: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: "#dcfce7",
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  doneText: {
+    color: "#16a34a",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
 
 });

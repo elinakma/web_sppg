@@ -107,7 +107,7 @@
                                     data-email="{{ $user->email }}"
                                     data-telepon="{{ $user->telepon }}"
                                     data-role="{{ $user->role }}">
-                                    <i class="bi bi-pencil-square"> Edit</i>
+                                    <i class="bi bi-pencil-square"></i> Edit
                                 </button>
 
                                 <!-- Hapus -->
@@ -309,7 +309,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn" style="background-color:#133b84;color:white">
-                            Update
+                            Simpan
                         </button>
                     </div>
                 </form>

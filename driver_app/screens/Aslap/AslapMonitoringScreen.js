@@ -45,12 +45,11 @@ export default function AslapMonitoringScreen({ navigation }) {
     }
   };
 
-  // Fetch pertama kali + Auto refresh setiap 8 detik
   useEffect(() => {
     fetchData();
 
     intervalRef.current = setInterval(() => {
-      fetchData(true);   // true = background update (tanpa loading spinner)
+      fetchData(true);
     }, 10000); // 10 detik sekali
 
     return () => {
@@ -135,7 +134,26 @@ export default function AslapMonitoringScreen({ navigation }) {
                 <View style={styles.driverHeader}>
                   <Icon name="account" size={26} color="#0d6efd" />
                   <Text style={styles.driverName}>{driver.name}</Text>
+
+                  {/* Badge status tracking */}
+                  <View style={[
+                    styles.trackingBadge,
+                    { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }
+                  ]}>
+                    <Icon
+                      name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'}
+                      size={13}
+                      color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'}
+                    />
+                    <Text style={[
+                      styles.trackingText,
+                      { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }
+                    ]}>
+                      {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
+                    </Text>
+                  </View>
                 </View>
+
                 {loc ? (
                   <Text style={styles.locationText}>
                     📍 {parseFloat(loc.latitude).toFixed(5)}, {parseFloat(loc.longitude).toFixed(5)}{'\n'}
@@ -154,11 +172,38 @@ export default function AslapMonitoringScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 15 },
-  subtitle: { fontSize: 18, fontWeight: '600', marginHorizontal: 15, marginTop: 10, marginBottom: 12 },
-  mapContainer: { height: 380, margin: 15, borderRadius: 15, overflow: 'hidden', elevation: 5 },
-  map: { flex: 1 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8f9fa' 
+  },
+
+  title: { 
+    fontSize: 22, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginVertical: 15 
+  },
+
+  subtitle: { 
+    fontSize: 18, 
+    fontWeight: '600', 
+    marginHorizontal: 15, 
+    marginTop: 10, 
+    marginBottom: 12 
+  },
+
+  mapContainer: { 
+    height: 380, 
+    margin: 15, 
+    borderRadius: 15, 
+    overflow: 'hidden', 
+    elevation: 5 
+  },
+
+  map: { 
+    flex: 1 
+  },
+
   driverCard: {
     backgroundColor: '#fff',
     marginHorizontal: 15,
@@ -167,12 +212,68 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 3,
   },
-  driverHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  driverName: { fontSize: 17, fontWeight: '600', marginLeft: 10 },
-  locationText: { fontSize: 14, color: '#2c3e50', lineHeight: 20 },
-  noLocation: { fontSize: 14, color: '#95a5a6', fontStyle: 'italic' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
-  errorBox: { margin: 20, padding: 20, backgroundColor: '#ffe6e6', borderRadius: 10 },
-  errorText: { color: 'red', textAlign: 'center' },
+  
+  driverHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 6 
+  },
+  
+  driverName: { 
+    fontSize: 17, 
+    fontWeight: '600', 
+    marginLeft: 10 
+  },
+
+  locationText: { 
+    fontSize: 14, 
+    color: '#2c3e50', 
+    lineHeight: 20 
+  },
+
+  noLocation: { 
+    fontSize: 14, 
+    color: '#95a5a6', 
+    fontStyle: 'italic' 
+  },
+
+  center: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+
+  loadingText: { 
+    marginTop: 12, 
+    fontSize: 16, 
+    color: '#666' 
+  },
+
+  errorBox: { 
+    margin: 20, 
+    padding: 20, 
+    backgroundColor: '#ffe6e6', 
+    borderRadius: 10 
+  },
+
+  errorText: { 
+    color: 'red', 
+    textAlign: 'center' 
+  },
+
+  trackingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 'auto',
+    gap: 4,
+  },
+
+  trackingText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
 });

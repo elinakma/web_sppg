@@ -157,8 +157,8 @@
                 </div>
 
                 <div class="text-end mt-5">
-                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                        <i class="bi bi-save me-2"></i> Simpan Semua Data Distribusi Mingguan
+                    <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                        <i class="bi bi-save me-2"></i> Simpan
                     </button>
                 </div>
             </form>

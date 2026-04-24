@@ -48,7 +48,6 @@ Route::post('/login', function (Request $request) {
 })->name('api.login');
 
 Route::post('/forgot-password', function (Request $request) {
-
     $request->validate([
         'email' => 'required|email'
     ]);
@@ -68,43 +67,7 @@ Route::post('/forgot-password', function (Request $request) {
         'success' => false,
         'message' => 'Email tidak ditemukan'
     ], 400);
-
 });
-
-// menerima data lokasi dari driver yang sudah terautentikasi dan validasi, lalu simpan ke database
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/track', function (Request $request) {
-        $user = $request->user();
-
-        if (!$user->isDriver()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-        ]);
-
-        // Simpan lokasi (asumsi tabel locations sudah ada)
-        $user->locations()->create([
-            'latitude' => $validated['latitude'],
-            'longitude' => $validated['longitude'],
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Lokasi berhasil dikirim']);
-    });
-});
-
-// mengambil lokasi terakhir semua driver yg nanti akan ditampilkan di peta admin
-Route::get('/drivers-locations', function () {
-    $drivers = User::where('role', 'Driver')
-                   ->with(['locations' => function ($query) {
-                       $query->latest()->limit(1);
-                   }])
-                   ->get();
-
-    return response()->json($drivers);
-})->name('api.drivers.locations');
 
 Route::get('/distribusi', function (Request $request) {
     try {
@@ -155,6 +118,40 @@ Route::get('/distribusi', function (Request $request) {
     }
 })->middleware('auth:sanctum');
 
+// menerima data lokasi dari driver yang sudah terautentikasi dan validasi, lalu simpan ke database
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/track', function (Request $request) {
+        $user = $request->user();
+
+        if (!$user->isDriver()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        // Simpan lokasi
+        $user->locations()->create([
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Lokasi berhasil dikirim']);
+    });
+});
+
+// mengambil lokasi terakhir semua driver yg nanti akan ditampilkan di peta admin
+Route::get('/drivers-locations', function () {
+    $drivers = User::where('role', 'Driver')
+                   ->with(['locations' => function ($query) {
+                       $query->latest()->limit(1);
+                   }])
+                   ->get();
+
+    return response()->json($drivers);
+})->name('api.drivers.locations');
 
 // Ambil statistik pengiriman hari ini untuk driver ini
 Route::get('/driver-stats', function (Request $request) {
@@ -291,27 +288,35 @@ Route::middleware('auth:sanctum')->group(function () {
     // Middleware cek role aslap
     // Monitoring peta: ambil semua lokasi driver terbaru
     Route::get('/aslap/driver-locations', function (Request $request) {
-        $user = $request->user();
-        if ($user->role !== 'Aslap') {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+    $user = $request->user();
+    if ($user->role !== 'Aslap') {
+        return response()->json(['error' => 'Unauthorized'], 403);
+    }
 
-        $drivers = User::where('role', 'Driver')
-            ->with(['locations' => function ($q) {
-                $q->latest()->limit(1);
-            }])
-            ->get()
-            ->map(function ($driver) {
-                return [
-                    'id'        => $driver->id,
-                    'name'      => $driver->name,
-                    'email'     => $driver->email,
-                    'locations' => $driver->locations,
-                ];
-            });
+    $today = now()->toDateString();
 
-        return response()->json(['success' => true, 'drivers' => $drivers]);
-    });
+    $drivers = User::where('role', 'Driver')
+        ->with(['locations' => function ($q) {
+            $q->latest()->limit(1);
+        }])
+        ->get()
+        ->map(function ($driver) use ($today) {
+            $sedangBerjalan = DistribusiSekolah::where('pengirim', $driver->id)
+                ->whereDate('tanggal_harian', $today)
+                ->where('status', 'dikirim')
+                ->exists();
+
+            return [
+                'id'              => $driver->id,
+                'name'            => $driver->name,
+                'email'           => $driver->email,
+                'sedang_berjalan' => $sedangBerjalan,
+                'locations'       => $driver->locations,
+            ];
+        });
+
+    return response()->json(['success' => true, 'drivers' => $drivers]);
+});
 
     // Pengiriman hari ini (semua driver)
     Route::get('/aslap/pengiriman-hari-ini', function (Request $request) {
@@ -396,3 +401,52 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['success' => true, 'distribusi' => $distribusi]);
     });
 });
+
+// Ambil profil user yang sedang login
+Route::get('/profil', function (Request $request) {
+    $user = $request->user();
+    return response()->json([
+        'success' => true,
+        'user' => [
+            'id'      => $user->id,
+            'name'    => $user->name,
+            'email'   => $user->email,
+            'telepon' => $user->telepon,
+            'role'    => $user->role,
+            'status'  => $user->status,
+        ]
+    ]);
+})->middleware('auth:sanctum');
+
+// Update profil user
+Route::put('/profil', function (Request $request) {
+    $user = $request->user();
+
+    $validated = $request->validate([
+        'name'             => 'required|string|max:255',
+        'telepon'          => 'nullable|string|regex:/^[89][0-9]{8,12}$/|max:20',
+        'password'         => 'nullable|string|min:8|confirmed',
+    ]);
+
+    $user->name    = $validated['name'];
+    $user->telepon = $validated['telepon'] ?? $user->telepon;
+
+    if (!empty($validated['password'])) {
+        $user->password = \Illuminate\Support\Facades\Hash::make($validated['password']);
+    }
+
+    $user->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Profil berhasil diperbarui.',
+        'user' => [
+            'id'      => $user->id,
+            'name'    => $user->name,
+            'email'   => $user->email,
+            'telepon' => $user->telepon,
+            'role'    => $user->role,
+            'status'  => $user->status,
+        ]
+    ]);
+})->middleware('auth:sanctum');

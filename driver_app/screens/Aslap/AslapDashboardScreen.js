@@ -55,10 +55,6 @@ export default function AslapDashboardScreen() {
             <Text style={styles.subName}>Makan Bergizi Gratis</Text>
           </View>
         </View>
-        <View style={styles.profile}>
-          <Ionicons name="person-circle-outline" size={45} color="#333" />
-          <Text style={styles.profileName}>Aslap</Text>
-        </View>
       </View>
 
       {/* WELCOME */}
@@ -86,28 +82,6 @@ export default function AslapDashboardScreen() {
             </View>
           ))}
         </View>
-      </View>
-
-      {/* PENUGASAN DRIVER */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Penugasan Driver</Text>
-        {drivers.map((d, i) => (
-          <View key={i} style={styles.driverRow}>
-            <Ionicons name="person-circle-outline" size={36} color="#0d6efd" />
-            <View style={{ marginLeft: 12, flex: 1 }}>
-              <Text style={styles.driverName}>{d.name}</Text>
-              <Text style={styles.driverSub}>{d.jumlah_sekolah} sekolah ditugaskan</Text>
-            </View>
-            <View style={styles.badgeBlue}>
-              <Text style={styles.badgeBlueText}>{d.jumlah_sekolah}</Text>
-            </View>
-          </View>
-        ))}
-        {drivers.length === 0 && (
-          <Text style={{ color: '#999', textAlign: 'center', marginTop: 8 }}>
-            Belum ada penugasan
-          </Text>
-        )}
       </View>
     </ScrollView>
   );

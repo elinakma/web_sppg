@@ -12,11 +12,23 @@ class MapController extends Controller
 {
     public function index()
     {
+        $today = now()->toDateString();
+
         $drivers = User::where('role', 'Driver')
                     ->with(['locations' => function ($query) {
                         $query->latest()->limit(1);
                     }])
-                    ->get();
+                    ->get()
+                    ->map(function ($driver) use ($today) {
+                        // Cek apakah driver sedang berjalan hari ini
+                        $sedangBerjalan = DistribusiSekolah::where('pengirim', $driver->id)
+                            ->whereDate('tanggal_harian', $today)
+                            ->where('status', 'dikirim')
+                            ->exists();
+
+                        $driver->sedang_berjalan = $sedangBerjalan;
+                        return $driver;
+                    });
 
         $sekolahAktif = Sekolah::aktif()->orderBy('nama_sekolah')->get();
 
@@ -28,8 +40,6 @@ class MapController extends Controller
         
         $allAssignedSekolah = Pengiriman::pluck('sekolah_id')->toArray();
 
-        // Otomatis sinkronisasi pengirim ke distribusi hari ini
-        // berdasarkan assignment yang sudah ada, tanpa perlu admin simpan ulang
         $this->sinkronisasiPengirimHariIni();
 
         return view('admin.monitoring.map', compact('drivers', 'sekolahAktif', 'assignedSekolah', 'allAssignedSekolah'));

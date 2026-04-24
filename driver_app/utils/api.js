@@ -169,3 +169,25 @@ export const getAslapDistribusi = async () => {
   });
   return response.data.distribusi || [];
 };
+
+
+// ============ PROFIL PENGGUNA ============
+
+export const getProfil = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.get(`${API_BASE_URL}/profil`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.user;
+};
+
+// Update profil user
+export const updateProfil = async (data) => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+  const response = await axios.put(`${API_BASE_URL}/profil`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};

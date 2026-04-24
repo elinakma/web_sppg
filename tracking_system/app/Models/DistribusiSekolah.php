@@ -27,16 +27,16 @@ class DistribusiSekolah extends Model
     {
         return $this->belongsTo(Sekolah::class, 'id_sekolah');
     }
-    
-    public function getPaguSekolahAttribute()
-    {
-        $pagu = Pagu::getPaguAktif();
-        return ($this->porsi_kecil_harian * $pagu->pagu_porsi_kecil) +
-               ($this->porsi_besar_harian * $pagu->pagu_porsi_besar);
-    }
 
     public function driverPengirim()
     {
         return $this->belongsTo(User::class, 'pengirim', 'id');
     }
+
+    // public function getPaguSekolahAttribute()
+    // {
+    //     $pagu = Pagu::getPaguAktif();
+    //     return ($this->porsi_kecil_harian * $pagu->pagu_porsi_kecil) +
+    //            ($this->porsi_besar_harian * $pagu->pagu_porsi_besar);
+    // }
 }

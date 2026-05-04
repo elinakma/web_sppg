@@ -8,6 +8,9 @@ use App\Http\Controllers\PaguController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\DistribusiController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\MenuMakananController;
+use App\Http\Controllers\RabController;
+use App\Http\Controllers\RekapController;
 
 // Halaman login
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
@@ -36,19 +39,15 @@ Route::middleware('auth')->group(function () {
 
 // Group untuk semua halaman yang butuh login
 Route::middleware('auth', 'verified')->group(function () {
-    // Dashboard admin
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
-
     // Profile routes
     Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile.edit');
     Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
 
 
     // Admin routes
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard_admin');
-        })->name('dashboard');
+    Route::prefix('admin')->name('admin.')->group(function () {    
+        // Dashboard admin
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Resource routes
         Route::resource('pengguna', PenggunaController::class);
@@ -87,23 +86,38 @@ Route::middleware('auth', 'verified')->group(function () {
 
         // Map / Tracking
         Route::get('/map', [MapController::class, 'index'])->name('map.index');
+
+        Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
     });
 
     Route::prefix('gizi')->name('gizi.')->group(function () {
         Route::get('/dashboard', function () {
             return view('gizi.dashboard_gizi');
         })->name('dashboard');
-    });
 
-    Route::prefix('aslap')->name('aslap.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('aslap.dashboard_aslap');
-        })->name('dashboard');
+        Route::prefix('menu')->name('menu.')->group(function () {
+            Route::get('/', [MenuMakananController::class, 'index'])->name('index');
+            Route::post('/', [MenuMakananController::class, 'store'])->name('store');
+            Route::put('/{menu}', [MenuMakananController::class, 'update'])->name('update');
+            Route::delete('/{menu}', [MenuMakananController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
     });
 
     Route::prefix('akuntan')->name('akuntan.')->group(function () {
         Route::get('/dashboard', function () {
             return view('akuntan.dashboard_akuntan');
         })->name('dashboard');
+
+        Route::prefix('rab')->name('rab.')->group(function () {
+            Route::get('/', [RabController::class, 'index'])->name('index');
+            Route::post('/harga/bulk', [RabController::class, 'updateHargaBulk'])->name('harga.bulk');
+            
+            Route::get('/pre-order', [RabController::class, 'preOrder'])->name('pre-order');
+            Route::post('/export-pdf', [RabController::class, 'exportPdf'])->name('export-pdf');
+        });
+
+        Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
     });
 });

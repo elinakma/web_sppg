@@ -29,11 +29,25 @@ export default function AslapDashboardScreen() {
   const dikirim  = pengiriman.filter(i => i.status === 'dikirim').length;
   const draf     = pengiriman.filter(i => i.status === 'draf').length;
 
-  const stats = [
-    { title: 'Total Pengiriman', value: pengiriman.length, icon: 'calendar-outline',       color: '#6366F1' },
-    { title: 'Dikirim',          value: dikirim,           icon: 'time-outline',            color: '#F59E0B' },
-    { title: 'Selesai',          value: selesai,           icon: 'checkmark-done-outline',  color: '#10B981' },
-    { title: 'Draf',             value: draf,              icon: 'document-outline',        color: '#6b7280' },
+  const dashboardStats = [
+    {
+      title: 'Total Pengiriman',
+      value: pengiriman.length,
+      icon: 'calendar-outline',
+      color: '#6366F1'
+    },
+    {
+      title: 'Dalam Proses',
+      value: dikirim,
+      icon: 'time-outline',
+      color: '#F59E0B'
+    },
+    {
+      title: 'Selesai',
+      value: selesai,
+      icon: 'checkmark-done-outline',
+      color: '#10B981'
+    }
   ];
 
   if (loading) {
@@ -69,10 +83,10 @@ export default function AslapDashboardScreen() {
 
       {/* STATS */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Ringkasan Hari Ini</Text>
-        <Text style={styles.sectionSub}>Data pengiriman aktif per hari ini.</Text>
+        <Text style={styles.sectionTitle}>Tinjauan Pengiriman</Text>
+        <Text style={styles.sectionSub}>Pantau aktivitas pengiriman hari ini.</Text>
         <View style={styles.grid}>
-          {stats.map((item, i) => (
+          {dashboardStats.map((item, i) => (
             <View key={i} style={styles.card}>
               <View style={[styles.iconBox, { backgroundColor: item.color + '20' }]}>
                 <Ionicons name={item.icon} size={24} color={item.color} />

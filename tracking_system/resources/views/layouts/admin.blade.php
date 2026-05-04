@@ -146,6 +146,7 @@
             margin: 2px;
             line-height: 2;
         }
+        
         .role-badge {
             display: inline-flex;
             align-items: center;
@@ -179,16 +180,81 @@
             color: #fff;
         }
 
+        /* Search */
+        .input-group .form-control,
+        .input-group .btn {
+            border-color: #6c757d;
+        }
+
+        .input-group .form-control {
+            border-right: 0;
+        }
+
+        .input-group .btn {
+            border-left: 0;
+        }
+
+        .input-group .form-control:focus,
+        .input-group .btn:focus {
+            box-shadow: none;
+            outline: none;
+            border-color: #6c757d;
+        }
+
+        /* Telp */
+        .input-telp {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ced4da;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .input-telp:focus-within {
+            border-color: #133b84;
+            box-shadow: 0 0 0 2px rgba(19, 59, 132, 0.15);
+        }
+
+        .input-telp-text {
+            background: #f1f3f5;
+            padding: 10px 12px;
+            font-weight: 500;
+            color: #495057;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .input-telp .form-control {
+            border: none;
+            box-shadow: none;
+            outline: none;
+            padding: 10px 12px;
+        }
+
+        .input-telp .form-control:focus {
+            box-shadow: none;
+        }
+
         /* Overlay Sukses */
         .success-overlay {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, .35);
+
             display: flex;
             justify-content: center;
             align-items: center;
+
             z-index: 1055;
+
+            opacity: 0;
+            visibility: hidden;
+            transition: all .3s ease;
+        }
+
+        .success-overlay.show {
             opacity: 1;
+            visibility: visible;
         }
 
         .success-card {
@@ -199,7 +265,25 @@
             width: 100%;
             max-width: 420px;
             box-shadow: 0 15px 40px rgba(0,0,0,.2);
+
+            transform: scale(.85);
+            opacity: 0;
+            transition: all .3s ease;
+        }
+
+        .success-overlay.show .success-card {
             transform: scale(1);
+            opacity: 1;
+        }
+
+        .success-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .success-overlay.hide .success-card {
+            transform: scale(.85);
+            opacity: 0;
         }
 
         .success-icon {
@@ -218,14 +302,54 @@
             color: white;
         }
 
-        .success-overlay.hide {
-            opacity: 0;
-            transition: opacity .3s ease;
+        .success-overlay,
+        .confirm-overlay {
+            transition: opacity .25s ease, visibility .25s ease;
         }
 
-        .success-overlay.hide .success-card {
-            transform: scale(.95);
-            transition: transform .3s ease;
+        /* Overlay error */
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .error-overlay.show {
+            opacity: 1;
+        }
+
+        .error-overlay.hide {
+            opacity: 0;
+        }
+
+        .error-card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            text-align: center;
+            width: 300px;
+        }
+
+        .error-icon {
+            width: 60px;
+            height: 60px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            font-size: 24px;
         }
 
         /* Overlay Hapus */
@@ -233,15 +357,21 @@
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, .35);
-            display: none;
+
+            display: flex;
             justify-content: center;
             align-items: center;
+
             z-index: 1055;
-            opacity: 1;
+
+            opacity: 0;
+            visibility: hidden;
+            transition: all .3s ease;
         }
 
         .confirm-overlay.show {
-            display: flex;
+            opacity: 1;
+            visibility: visible;
         }
 
         .confirm-card {
@@ -252,9 +382,33 @@
             width: 100%;
             max-width: 420px;
             box-shadow: 0 15px 40px rgba(0,0,0,.2);
-            transform: scale(1);
+
+            transform: scale(.85);
+            opacity: 0;
+            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        .confirm-overlay.show .confirm-card {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .confirm-overlay.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .confirm-overlay.hide .confirm-card {
+            transform: scale(.85);
+            opacity: 0;
+        }
+
+        .success-card,
+        .confirm-card {
+            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Icon */
         .confirm-icon {
             width: 72px;
             height: 72px;
@@ -269,16 +423,6 @@
         .confirm-icon i {
             font-size: 36px;
             color: white;
-        }
-
-        .confirm-overlay.hide {
-            opacity: 0;
-            transition: opacity .3s ease;
-        }
-
-        .confirm-overlay.hide .confirm-card {
-            transform: scale(.95);
-            transition: transform .3s ease;
         }
 
         /* Toggle Switch */
@@ -333,6 +477,15 @@
 
         .slider.round:before {
             border-radius: 50%;
+        }
+
+        .btn-uniform {
+            min-width: 80px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 13px;
         }
     </style>
 </head>

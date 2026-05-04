@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PenggunaController extends Controller
 {
@@ -56,15 +57,22 @@ class PenggunaController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'telepon' => 'nullable|string|regex:/^[89][0-9]{8,12}$/|max:20',
             'role'     => 'required|in:Admin,Aslap,Gizi,Akuntan,Driver',
+            'status'   => 'required|in:Aktif,Nonaktif',
         ]);
 
         $pengguna->name = $request->name;
         $pengguna->email = $request->email;
         $pengguna->telepon = $request->telepon;
         $pengguna->role = $request->role;
+        $pengguna->status = $request->status;
 
         if ($request->filled('password')) {
             $pengguna->password = Hash::make($request->password);
+        }
+
+        if ($pengguna->id === Auth::id() && $request->status === 'Nonaktif') {
+            return redirect()->back()
+                ->with('error', 'Anda tidak dapat menonaktifkan akun sendiri.');
         }
 
         $pengguna->save();
@@ -124,7 +132,11 @@ class PenggunaController extends Controller
 
     public function destroy(User $pengguna)
     {
-        // Opsional: larang hapus akun Admin terakhir
+        if ($pengguna->id === Auth::id()) {
+            return redirect()->back()
+                ->with('error', 'Anda tidak dapat menghapus akun sendiri.');
+        }
+
         if ($pengguna->role === 'Admin' && User::where('role', 'Admin')->count() <= 1) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus admin terakhir.');
         }

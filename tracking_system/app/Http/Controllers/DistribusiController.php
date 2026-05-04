@@ -126,6 +126,8 @@ class DistribusiController extends Controller
             ];
         }
 
+        $grandTotalPagu = collect($summaryHarian)->sum('pagu_harian');
+
         return view('admin.distribusi.tindak-lanjut', compact(
             'distribusi',
             'sekolahAktif',
@@ -133,7 +135,8 @@ class DistribusiController extends Controller
             'hariList',
             'summaryHarian',
             'previewHarian',
-            'pagu'
+            'pagu',
+            'grandTotalPagu'
         ));
     }
     

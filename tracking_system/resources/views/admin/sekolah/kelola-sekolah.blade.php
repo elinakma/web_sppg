@@ -76,94 +76,102 @@
                             <td class="text-center">{{ $s->porsi_kecil_default }}</td>
                             <td class="text-center">{{ $s->porsi_besar_default }}</td>
                             <td class="text-center">
-                                <span class="badge bg-{{ $s->status === 'Aktif' ? 'success' : 'danger' }}">
+                                <span class="badge px-3 py-2 {{ $s->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ $s->status }}
                                 </span>
                             </td>
                             <td class="text-center d-flex justify-content-center flex-wrap gap-1">
-                                <button type="button" class="btn btn-sm btn-warning action-btn" 
-                                        data-bs-toggle="modal" data-bs-target="#editModal{{ $s->id }}">
+                                <button type="button"
+                                    class="btn btn-sm btn-warning action-btn edit-btn"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editSekolahModal"
+                                    data-id="{{ $s->id }}"
+                                    data-nama="{{ $s->nama_sekolah }}"
+                                    data-pic="{{ $s->pic }}"
+                                    data-kecil="{{ $s->porsi_kecil_default }}"
+                                    data-besar="{{ $s->porsi_besar_default }}"
+                                    data-status="{{ $s->status }}">
                                     <i class="bi bi-pencil-square"></i> Edit
                                 </button>
 
-                                <form action="{{ route('admin.sekolah.destroy', $s) }}" method="POST" class="d-inline">
+                                <button type="button"
+                                    class="btn btn-sm btn-danger action-btn btn-delete"
+                                    data-id="{{ $s->id }}"
+                                    data-nama="{{ $s->nama_sekolah }}">
+                                    <i class="bi bi-trash"></i> Hapus
+                                </button>
+
+                                <form id="delete-form-{{ $s->id }}"
+                                    action="{{ route('admin.sekolah.destroy', $s) }}"
+                                    method="POST" class="d-none">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger action-btn"
-                                            onclick="return confirm('Yakin ingin menghapus sekolah ini?')">
-                                        <i class="bi bi-trash"></i> Hapus
-                                    </button>
                                 </form>
                             </td>
                         </tr>
-
-                        <!-- Modal Edit per sekolah -->
-                        <div class="modal fade" id="editModal{{ $s->id }}" tabindex="-1" aria-labelledby="editModalLabel{{ $s->id }}" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="editModalLabel{{ $s->id }}">Edit Sekolah: {{ $s->nama_sekolah }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <form action="{{ route('admin.sekolah.update', $s) }}" method="POST">
-                                        @csrf @method('PUT')
-                                        <div class="modal-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Nama Sekolah</label>
-                                                    <input type="text" name="nama_sekolah" class="form-control @error('nama_sekolah') is-invalid @enderror" 
-                                                            value="{{ old('nama_sekolah', $s->nama_sekolah) }}" required>
-                                                    @error('nama_sekolah') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-6">
-                                                    <label class="form-label">PIC</label>
-                                                    <input type="text" name="pic" class="form-control @error('pic') is-invalid @enderror" 
-                                                            value="{{ old('pic', $s->pic) }}" required>
-                                                    @error('pic') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-3">
-                                                    <label class="form-label">Porsi Kecil</label>
-                                                    <input type="number" name="porsi_kecil_default" min="0" class="form-control @error('porsi_kecil_default') is-invalid @enderror" 
-                                                            value="{{ old('porsi_kecil_default', $s->porsi_kecil_default) }}">
-                                                    @error('porsi_kecil_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-3">
-                                                    <label class="form-label">Porsi Besar</label>
-                                                    <input type="number" name="porsi_besar_default" min="0" class="form-control @error('porsi_besar_default') is-invalid @enderror" 
-                                                            value="{{ old('porsi_besar_default', $s->porsi_besar_default) }}">
-                                                    @error('porsi_besar_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-
-                                                <div class="col-md-12">
-                                                    <label class="form-label">Status</label>
-                                                    <select name="status" class="form-select @error('status') is-invalid @enderror">
-                                                        <option value="Aktif" {{ old('status', $s->status) == 'Aktif' ? 'selected' : '' }}>Aktif</option>
-                                                        <option value="Nonaktif" {{ old('status', $s->status) == 'Nonaktif' ? 'selected' : '' }}>Nonaktif</option>
-                                                    </select>
-                                                    @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                            <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        
                         @empty
                         <tr>
                             <td colspan="9" class="text-center text-muted py-4">
-                                Tidak ada data sekolah penerima MBG
+                                Tidak ada data sekolah penerima manfaat
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
+
+                <!-- Modal Edit per sekolah -->
+                <div class="modal fade" id="editSekolahModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title fw-semibold">Edit Sekolah</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <form id="editForm" method="POST">
+                                @csrf @method('PUT')
+
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nama Sekolah</label>
+                                            <input type="text" name="nama_sekolah" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">PIC</label>
+                                            <input type="text" name="pic" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Porsi Kecil</label>
+                                            <input type="number" name="porsi_kecil_default" class="form-control">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Porsi Besar</label>
+                                            <input type="number" name="porsi_besar_default" class="form-control">
+                                        </div>
+
+                                        <div class="col-md-12">
+                                            <label class="form-label">Status</label>
+                                            <select name="status" class="form-select">
+                                                <option value="Aktif">Aktif</option>
+                                                <option value="Nonaktif">Nonaktif</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                                        Simpan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
@@ -180,6 +188,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal konfirmasi hapus -->
+    <div class="confirm-overlay" id="deleteConfirmOverlay">
+        <div class="confirm-card">
+            <div class="confirm-icon">
+                <i class="bi bi-exclamation-lg"></i>
+            </div>
+            <h5 class="fw-bold mt-3">Konfirmasi Hapus</h5>
+            <p class="text-muted mb-4" id="deleteMessage"></p>
+
+            <div class="d-flex justify-content-center gap-3">
+                <button type="button" class="btn btn-secondary px-4" id="cancelDelete">Tidak</button>
+                <button type="button" class="btn btn-danger px-4" id="confirmDelete">Ya</button>
+            </div>
+        </div>
+    </div>                        
 
     <!-- Modal Tambah Sekolah -->
     <div class="modal fade" id="tambahSekolahModal" tabindex="-1" aria-hidden="true">
@@ -307,17 +331,63 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.querySelector('.success-overlay');
 
-    if (overlay) {
+    // SUCCESS OVERLAY
+    const successOverlay = document.querySelector('.success-overlay');
+    if (successOverlay) {
         setTimeout(() => {
-            overlay.classList.add('hide');
+            successOverlay.classList.add('show');
+        }, 50);
 
-            setTimeout(() => {
-                overlay.remove();
-            }, 500);
+        setTimeout(() => {
+            successOverlay.classList.add('hide');
+            setTimeout(() => successOverlay.remove(), 300);
         }, 3000);
     }
+
+    // EDIT MODAL
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const form = document.getElementById('editForm');
+
+            form.action = `/admin/sekolah/${this.dataset.id}`;
+            form.querySelector('[name="nama_sekolah"]').value = this.dataset.nama;
+            form.querySelector('[name="pic"]').value = this.dataset.pic;
+            form.querySelector('[name="porsi_kecil_default"]').value = this.dataset.kecil;
+            form.querySelector('[name="porsi_besar_default"]').value = this.dataset.besar;
+            form.querySelector('[name="status"]').value = this.dataset.status;
+        });
+    });
+
+    // DELETE
+    let deleteId = null;
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const confirmBtn = document.getElementById('confirmDelete');
+    const cancelBtn = document.getElementById('cancelDelete');
+    const message = document.getElementById('deleteMessage');
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function () {
+            deleteId = this.dataset.id;
+            message.innerHTML = `Yakin hapus <strong>${this.dataset.nama}</strong>?`;
+            overlay.classList.add('show');
+        });
+    });
+
+    cancelBtn.onclick = () => {
+        overlay.classList.add('hide');
+        setTimeout(() => {
+            overlay.classList.remove('show', 'hide');
+        }, 300);
+        deleteId = null;
+    };
+
+    confirmBtn.onclick = () => {
+        if (deleteId) {
+            document.getElementById(`delete-form-${deleteId}`).submit();
+        }
+    };
+
 });
 </script>
 

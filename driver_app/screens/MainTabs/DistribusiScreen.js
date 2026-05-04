@@ -7,6 +7,8 @@ import {
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as TaskManager from 'expo-task-manager';
+import LOCATION_TASK_NAME from '../../utils/locationTask';
 
 import {
   getDistribusi,
@@ -75,89 +77,72 @@ export default function DistribusiScreen() {
 
   // ================= START TRACKING =================
 
-  const handleStartTracking = () => {
-
+  const handleStartTracking = async () => {
     Alert.alert(
       "Mulai Tracking?",
-      "GPS akan mulai merekam perjalanan",
+      "GPS akan terus berjalan meskipun aplikasi ditutup.",
       [
         { text: "Batal", style: "cancel" },
         {
           text: "Mulai",
           onPress: async () => {
-
             try {
-
               const { status } = await Location.requestForegroundPermissionsAsync();
-
-              if (status !== "granted") {
-                Alert.alert("GPS tidak diizinkan");
+              if (status !== 'granted') {
+                Alert.alert("Izin GPS ditolak");
                 return;
               }
 
-              await startTracking();
+              await Location.requestBackgroundPermissionsAsync();
+
+              await startTracking();   // update status ke 'dikirim'
+
+              // Mulai background location
+              await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+                accuracy: Location.Accuracy.High,
+                timeInterval: 10000,        // setiap 10 detik
+                distanceInterval: 20,      // atau setiap bergerak 20 meter
+                showsBackgroundLocationIndicator: true,
+                foregroundService: {
+                  notificationTitle: "Tracking Pengiriman",
+                  notificationBody: "Sedang mengirim lokasi...",
+                },
+              });
 
               setIsTracking(true);
-
-              intervalRef.current = setInterval(async () => {
-
-                const loc = await Location.getCurrentPositionAsync({
-                  accuracy: Location.Accuracy.High
-                });
-
-                await sendLocation(
-                  loc.coords.latitude,
-                  loc.coords.longitude
-                );
-
-              }, 5000);
-
               fetchSekolah();
 
             } catch (error) {
-
-              Alert.alert("Gagal memulai tracking");
-
+              console.error(error);
+              Alert.alert("Gagal memulai tracking", error.message);
             }
-
           }
         }
       ]
     );
   };
 
-  // ================= STOP TRACKING =================
-
-  const handleStopTracking = () => {
-
+  const handleStopTracking = async () => {
     Alert.alert(
-      "Selesaikan Perjalanan?",
-      "Semua sekolah yang belum checklist akan otomatis selesai",
+      "Stop Tracking?",
+      "Apakah Anda yakin ingin menghentikan perjalanan?",
       [
         { text: "Batal", style: "cancel" },
         {
-          text: "Selesai",
+          text: "Stop",
           onPress: async () => {
-
             try {
-
-              if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
+              if (await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME)) {
+                await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
               }
 
               await stopTracking();
-
               setIsTracking(false);
-
               fetchSekolah();
 
             } catch (error) {
-
               Alert.alert("Gagal menghentikan tracking");
-
             }
-
           }
         }
       ]

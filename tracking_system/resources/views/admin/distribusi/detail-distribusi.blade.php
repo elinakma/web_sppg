@@ -6,6 +6,7 @@
 <div class="container py-4">
     <div class="card shadow-sm">
         <div class="card-body">
+            <!-- Breadcrumb -->
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb small mb-0">
                     <li class="breadcrumb-item">
@@ -13,8 +14,12 @@
                             <i class="bi bi-house me-1"></i> Beranda
                         </a>
                     </li>
-                    <li class="breadcrumb-item active fw-semibold" aria-current="page">
-                        Kelola Distribusi
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('admin.distribusi.index') }}" 
+                        class="text-decoration-none fw-semibold" 
+                        style="color: #133b84;">
+                            Kelola Distribusi
+                        </a>
                     </li>
                 </ol>
             </nav>
@@ -22,7 +27,6 @@
             <hr style="margin-top: 10px; margin-bottom: 20px;">
 
             <div class="card-body">
-                <!-- Info Minggu -->
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <h5 class="fw-bold">Periode Minggu</h5>
@@ -92,6 +96,29 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <div class="card mb-5 border-0 bg-success bg-opacity-10">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="fw-bold mb-0 text-success">
+                                    <i class="bi bi-cash-stack me-2"></i>
+                                    Total Pagu Mingguan
+                                    <small class="text-muted fw-normal ms-2">
+                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
+                                        s/d
+                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->format('d M Y') }})
+                                    </small>
+                                </h6>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="fs-4 fw-bold text-success">
+                                    Rp {{ number_format($grandTotalPagu, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Detail per Sekolah per Hari -->

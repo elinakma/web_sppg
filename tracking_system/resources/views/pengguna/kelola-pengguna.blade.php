@@ -83,18 +83,9 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span id="status-text-{{ $user->id }}" 
-                                    class="badge {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
+                                <span class="badge px-3 py-2 {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ $user->status }}
                                 </span>
-                                <!-- Toggle Status -->
-                                <label class="switch">
-                                    <input type="checkbox" 
-                                        class="toggle-status" 
-                                        data-id="{{ $user->id }}" 
-                                        {{ $user->status === 'Aktif' ? 'checked' : '' }}>
-                                    <span class="slider round"></span>
-                                </label>
                             </td>
                             <td class="text-center">
                                 <!-- Edit -->
@@ -272,12 +263,14 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Nomor Telepon</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">+62</span>
+                                <div class="input-telp">
+                                    <span class="input-telp-text">+62</span>
                                     <input type="text" name="telepon" class="form-control @error('telepon') is-invalid @enderror"
                                         placeholder="859xxxxxxxx" pattern="[8-9][0-9]{8,12}">
                                 </div>
-                                @error('telepon') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('telepon') 
+                                    <div class="invalid-feedback">{{ $message }}</div> 
+                                @enderror
                             </div>
 
                             <div class="col-md-6">
@@ -291,6 +284,14 @@
                                     <option value="Driver">Distribusi</option>
                                 </select>
                                 @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="Aktif">Aktif</option>
+                                    <option value="Nonaktif">Nonaktif</option>
+                                </select>
                             </div>
 
                             <div class="col-md-6">
@@ -355,29 +356,72 @@
 </div>
 @endif
 
+<!-- overlay error -->
+@if(session('error'))
+<div class="error-overlay">
+    <div class="error-card">
+        <div class="error-icon">
+            <i class="bi bi-x-lg"></i>
+        </div>
+        <h5 class="fw-bold mt-3">Gagal</h5>
+        <p class="text-muted mb-0">
+            {{ session('error') }}
+        </p>
+    </div>
+</div>
+@endif
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Input data modal edit
+    const successOverlay = document.querySelector('.success-overlay');
+    if (successOverlay) {
+        setTimeout(() => {
+            successOverlay.classList.add('show');
+        }, 50);
+
+        setTimeout(() => {
+            successOverlay.classList.add('hide');
+
+            setTimeout(() => {
+                successOverlay.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    const errorOverlay = document.querySelector('.error-overlay');
+    if (errorOverlay) {
+        setTimeout(() => {
+            errorOverlay.classList.add('show');
+        }, 50);
+
+        setTimeout(() => {
+            errorOverlay.classList.add('hide');
+
+            setTimeout(() => {
+                errorOverlay.remove();
+            }, 300);
+        }, 3000);
+    }
+
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const form = document.getElementById('editForm');
 
             form.action = '{{ route("admin.pengguna.update", ":id") }}'.replace(':id', this.dataset.id);
 
-            form.querySelector('input[name="name"]').value   = this.dataset.name;
-            form.querySelector('input[name="email"]').value  = this.dataset.email;
-            form.querySelector('input[name="telepon"]').value = this.dataset.telepon ?? '';
-            form.querySelector('select[name="role"]').value  = this.dataset.role;
+            form.querySelector('[name="name"]').value = this.dataset.name;
+            form.querySelector('[name="email"]').value = this.dataset.email;
+            form.querySelector('[name="telepon"]').value = this.dataset.telepon ?? '';
+            form.querySelector('[name="role"]').value = this.dataset.role;
 
-            // Kosongkan password
-            form.querySelector('input[name="password"]').value            = '';
-            form.querySelector('input[name="password_confirmation"]').value = '';
+            form.querySelector('[name="password"]').value = '';
+            form.querySelector('[name="password_confirmation"]').value = '';
         });
     });
 
-    // Konfirmasi hapus
     let deleteId = null;
-    const deleteOverlay = document.getElementById('deleteConfirmOverlay');
+
+    const overlay = document.getElementById('deleteConfirmOverlay');
     const confirmBtn = document.getElementById('confirmDelete');
     const cancelBtn = document.getElementById('cancelDelete');
     const message = document.getElementById('deleteMessage');
@@ -385,90 +429,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', function () {
             deleteId = this.dataset.id;
-            const name = this.dataset.name;
-
-            message.innerHTML = `Apakah yakin ingin menghapus <strong>${name}</strong>?`;
-            deleteOverlay.classList.add('show');
+            message.innerHTML = `Yakin hapus <strong>${this.dataset.name}</strong>?`;
+            overlay.classList.add('show');
         });
     });
 
-    cancelBtn.addEventListener('click', () => {
-        deleteOverlay.classList.remove('show');
-        deleteId = null;
-    });
+    cancelBtn.onclick = () => {
+        overlay.classList.add('hide');
 
-    confirmBtn.addEventListener('click', () => {
+        setTimeout(() => {
+            overlay.classList.remove('show', 'hide');
+        }, 300);
+
+        deleteId = null;
+    };
+
+    confirmBtn.onclick = () => {
         if (deleteId) {
             document.getElementById(`delete-form-${deleteId}`).submit();
         }
-    });
+    };
 
-    // overlay sukses otomatis hilang
-    const overlay = document.querySelector('.success-overlay');
-    if (overlay) {
-        setTimeout(() => {
-            overlay.classList.add('hide');
-            setTimeout(() => {
-                overlay.remove();
-            }, 500);
-        }, 3000);
-    }
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-
-    document.querySelectorAll('.toggle-status').forEach(toggle => {
-        toggle.addEventListener('change', function(e) {
-
-            const userId = this.dataset.id;
-            const isActive = this.checked;
-            const statusText = document.getElementById(`status-text-${userId}`);
-
-            console.log(`%c🔄 Toggle diklik - User ID: ${userId} | Mau jadi: ${isActive ? 'Aktif' : 'Nonaktif'}`, 'color: orange');
-
-            if (!confirm(`Ubah status menjadi ${isActive ? 'Aktif' : 'Nonaktif'}?`)) {
-                this.checked = !isActive;
-                return;
-            }
-
-            console.log('📤 Mengirim request PATCH...');
-
-            fetch(`/admin/pengguna/${userId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]') ? 
-                                   document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
-                },
-                body: JSON.stringify({
-                    status: isActive ? 'Aktif' : 'Nonaktif'
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        throw new Error(`HTTP ${response.status}: ${text}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    statusText.textContent = data.status;
-                    statusText.className = `badge ${data.status === 'Aktif' ? 'bg-success' : 'bg-secondary'}`;
-                    console.log('🎉 UI berhasil diupdate');
-                } else {
-                    alert(data.message || 'Gagal mengubah status');
-                    this.checked = !isActive;
-                }
-            })
-            .catch(error => {
-                alert('Gagal mengirim data. Lihat Console (F12) untuk detail lengkap.');
-                this.checked = !isActive;
-            });
-        });
-    });
 });
 </script>
 @endsection

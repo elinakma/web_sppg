@@ -4,12 +4,25 @@
 <div class="container py-4">
     <div class="card shadow-sm">
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold mb-0">Kelola Distribusi Mingguan</h4>
-                <span class="text-muted">
-                    Minggu mulai: {{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
-                </span>
-            </div>
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('admin.dashboard') }}" class="text-decoration-none fw-semibold" style="color: #133b84;">
+                            <i class="bi bi-house me-1"></i> Beranda
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('admin.distribusi.index') }}" 
+                        class="text-decoration-none fw-semibold" 
+                        style="color: #133b84;">
+                            Kelola Distribusi
+                        </a>
+                    </li>
+                </ol>
+            </nav>
+
+            <hr style="margin-top: 10px; margin-bottom: 20px;">
 
             @if ($errors->any())
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -49,7 +62,6 @@
                                         aria-controls="collapse{{ $index }}">
                                     {{ $namaHari }}, {{ $tanggal->format('d M Y') }}
                                     <span class="ms-auto me-3 text-muted summary-preview" data-tanggal="{{ $tanggalStr }}">
-                                        <!-- Placeholder default, akan di-update JS -->
                                         Penerima: 0 | Pagu: Rp 0
                                     </span>
                                 </button>
@@ -63,7 +75,6 @@
                                         @php
                                             $data = $dataDistribusi[$tanggalStr][$s->id] ?? null;
 
-                                            // Prioritas: DB > old > default sekolah
                                             $porsiKecil = old("sekolah.{$s->id}.{$tanggalStr}.porsi_kecil_harian", 
                                                             $data?->porsi_kecil_harian ?? $s->porsi_kecil_default);
 
@@ -72,7 +83,6 @@
 
                                             $total = $porsiKecil + $porsiBesar;
 
-                                            // Gunakan pagu dari DB kalau sudah tersimpan, kalau belum hitung ulang
                                             $paguSekolah = $data?->pagu_harian_sekolah 
                                                         ?? (($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar));
 
@@ -156,7 +166,38 @@
                     @endforeach
                 </div>
 
-                <div class="text-end mt-5">
+                {{-- RINGKASAN PAGU MINGGUAN --}}
+                <div class="card mt-4 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="fw-bold mb-0">
+                                    <i class="bi bi-calculator me-2 text-primary"></i>
+                                    Total Pagu Mingguan
+                                    <small class="text-muted fw-normal ms-2">
+                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
+                                        s/d
+                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->format('d M Y') }})
+                                    </small>
+                                </h6>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="fs-5 fw-bold text-success" id="grand-total-pagu">
+                                    Rp {{ number_format($grandTotalPagu, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-5">
+                    <!-- Tombol Kembali -->
+                    <a href="{{ route('admin.distribusi.index') }}" 
+                    class="btn btn-secondary">
+                        Kembali
+                    </a>
+
+                    <!-- Tombol Simpan -->
                     <button type="submit" class="btn" style="background-color:#133b84;color:white">
                         <i class="bi bi-save me-2"></i> Simpan
                     </button>
@@ -196,6 +237,35 @@ function updateSummaryHarian(tanggal) {
     const previewEl = document.querySelector(`.summary-preview[data-tanggal="${tanggal}"]`);
     if (previewEl) {
         previewEl.textContent = `Penerima: ${totalKecil + totalBesar} | Pagu: Rp ${paguHarian.toLocaleString('id-ID')}`;
+    }
+
+    updateGrandTotal();
+}
+
+function updateGrandTotal() {
+    const paguKecil = {{ $pagu->pagu_porsi_kecil }};
+    const paguBesar = {{ $pagu->pagu_porsi_besar }};
+    let grandTotal = 0;
+
+    // Ambil semua tanggal unik dari semua summary-harian
+    document.querySelectorAll('.summary-harian').forEach(container => {
+        const tanggal = container.dataset.tanggal;
+        let totalKecil = 0;
+        let totalBesar = 0;
+
+        document.querySelectorAll(`[name*="sekolah"][name*="[${tanggal}][porsi_kecil_harian]"]`).forEach(el => {
+            totalKecil += parseInt(el.value) || 0;
+        });
+        document.querySelectorAll(`[name*="sekolah"][name*="[${tanggal}][porsi_besar_harian]"]`).forEach(el => {
+            totalBesar += parseInt(el.value) || 0;
+        });
+
+        grandTotal += (totalKecil * paguKecil) + (totalBesar * paguBesar);
+    });
+
+    const grandTotalEl = document.getElementById('grand-total-pagu');
+    if (grandTotalEl) {
+        grandTotalEl.textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
     }
 }
 

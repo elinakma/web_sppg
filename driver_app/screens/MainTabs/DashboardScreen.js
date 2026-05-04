@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getDriverStats } from '../../utils/api';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image
 } from 'react-native';
@@ -6,31 +7,37 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TrackingScreen() {
 
-  const stats = [
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const data = await getDriverStats();
+      setStats(data);
+    } catch (error) {
+      console.log("Error stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const dashboardStats = [
     {
-      title: "Pengiriman Hari Ini",
-      value: 8,
-      icon: "calendar-outline",
-      color: "#6366F1"
+        title: "Pengiriman Hari Ini",
+        value: stats?.total_hari_ini || 0,
+        icon: "calendar-outline",
+        color: "#6366F1"
     },
     {
-      title: "Dalam Proses",
-      value: 3,
-      icon: "time-outline",
-      color: "#F59E0B"
-    },
-    {
-      title: "Selesai",
-      value: 5,
-      icon: "checkmark-done-outline",
-      color: "#10B981"
-    },
-    {
-      title: "Tertunda",
-      value: 1,
-      icon: "alert-circle-outline",
-      color: "#EF4444"
-    },
+        title: "Total Sekolah",
+        value: stats?.total_sekolah || 0,
+        icon: "business-outline",
+        color: "#10B981"
+    }
   ];
 
   return (
@@ -52,18 +59,12 @@ export default function TrackingScreen() {
             </View>
         </View>
 
-        {/* KANAN (PROFILE) */}
-        <View style={styles.profile}>
-            <Ionicons name="person-circle-outline" size={45} color="#333" />
-            <Text style={styles.profileName}>Driver</Text>
-        </View>
-
         </View>
 
         {/* WELCOME CARD */}
         <View style={styles.welcomeCard}>
             <Text style={styles.welcomeText}>
-            Selamat datang, <Text style={{ fontWeight: 'bold' }}>Nama Driver</Text>
+            Selamat datang, <Text style={{ fontWeight: 'bold' }}>{stats?.nama_driver || '-'}</Text>
             </Text>
             <Text style={styles.welcomeLogin}>
             Anda Login sebagai <Text style={{ fontWeight: 'bold' }}>Driver</Text>
@@ -76,7 +77,7 @@ export default function TrackingScreen() {
             <Text style={styles.sectionSub}>Pantau aktivitas pengiriman Anda hari ini.</Text>
 
             <View style={styles.grid}>
-            {stats.map((item, index) => (
+            {dashboardStats.map((item, index) => (
                 <TouchableOpacity key={index} style={styles.card}>
                 <View style={[styles.iconBox, { backgroundColor: item.color + "20" }]}>
                     <Ionicons name={item.icon} size={24} color={item.color} />
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingTop: 60,
         paddingBottom: 20,
         flexDirection: "row",
         justifyContent: "space-between",

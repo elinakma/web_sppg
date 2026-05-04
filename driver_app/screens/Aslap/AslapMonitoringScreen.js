@@ -5,6 +5,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { getAslapDriverLocations } from '../../utils/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AslapMonitoringScreen({ navigation }) {
   const [drivers, setDrivers] = useState([]);
@@ -79,201 +80,215 @@ export default function AslapMonitoringScreen({ navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container} refreshControl={
-      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-    }>
-      <Text style={styles.title}>Monitoring Driver Real-time</Text>
+    <SafeAreaView style={styles.container}>
 
-      {errorMsg ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
-        </View>
-      ) : (
-        <>
-          {/* PETA */}
-          <View style={styles.mapContainer}>
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: -7.55,
-                longitude: 111.52,
-                latitudeDelta: 0.8,
-                longitudeDelta: 0.8,
-              }}
-            >
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+
+        {/* TITLE */}
+        <Text style={styles.title}>
+          Pemantauan Pengiriman
+        </Text>
+
+        {errorMsg ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{errorMsg}</Text>
+          </View>
+        ) : (
+          <>
+            {/* MAP */}
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                initialRegion={{
+                  latitude: -7.55,
+                  longitude: 111.52,
+                  latitudeDelta: 0.8,
+                  longitudeDelta: 0.8,
+                }}
+              >
+                {drivers.map(driver => {
+                  const loc = getLastLocation(driver);
+                  if (!loc) return null;
+
+                  return (
+                    <Marker
+                      key={driver.id}
+                      coordinate={{
+                        latitude: parseFloat(loc.latitude),
+                        longitude: parseFloat(loc.longitude),
+                      }}
+                      title={driver.name}
+                      description={`Update: ${new Date(loc.created_at).toLocaleTimeString('id-ID')}`}
+                    >
+                      <View style={styles.markerContainer}>
+                        <Icon name="truck-delivery" size={34} color="#6366f1" />
+                      </View>
+                    </Marker>
+                  );
+                })}
+              </MapView>
+            </View>
+
+            {/* LIST TITLE */}
+            <Text style={styles.subtitle}>
+              Daftar Driver Aktif ({drivers.length})
+            </Text>
+
+            {/* DRIVER LIST */}
+            <View style={{ paddingHorizontal: 16 }}>
               {drivers.map(driver => {
                 const loc = getLastLocation(driver);
-                if (!loc) return null;
-
                 return (
-                  <Marker
-                    key={driver.id}
-                    coordinate={{
-                      latitude: parseFloat(loc.latitude),
-                      longitude: parseFloat(loc.longitude),
-                    }}
-                    title={driver.name}
-                    description={`Update: ${new Date(loc.created_at).toLocaleTimeString('id-ID')}`}
-                  >
-                    <View style={styles.markerContainer}>
-                      <Icon name="truck-delivery" size={36} color="#0d6efd" />
+                  <View key={driver.id} style={styles.driverCard}>
+
+                    <View style={styles.driverHeader}>
+                      <Icon name="account" size={24} color="#374151" />
+                      <Text style={styles.driverName}>{driver.name}</Text>
+
+                      <View style={[
+                        styles.trackingBadge,
+                        { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }
+                      ]}>
+                        <Icon
+                          name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'}
+                          size={12}
+                          color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'}
+                        />
+                        <Text style={[
+                          styles.trackingText,
+                          { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }
+                        ]}>
+                          {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
+                        </Text>
+                      </View>
                     </View>
-                  </Marker>
+
+                    {loc ? (
+                      <Text style={styles.locationText}>
+                        📍 {parseFloat(loc.latitude).toFixed(5)}, {parseFloat(loc.longitude).toFixed(5)}{'\n'}
+                        Terakhir update: {new Date(loc.created_at).toLocaleString('id-ID')}
+                      </Text>
+                    ) : (
+                      <Text style={styles.noLocation}>Belum ada data lokasi</Text>
+                    )}
+
+                  </View>
                 );
               })}
-            </MapView>
-          </View>
+            </View>
+          </>
+        )}
 
-          {/* List Driver */}
-          <Text style={styles.subtitle}>Daftar Driver Aktif ({drivers.length})</Text>
-          
-          {drivers.map(driver => {
-            const loc = getLastLocation(driver);
-            return (
-              <View key={driver.id} style={styles.driverCard}>
-                <View style={styles.driverHeader}>
-                  <Icon name="account" size={26} color="#0d6efd" />
-                  <Text style={styles.driverName}>{driver.name}</Text>
+      </ScrollView>
 
-                  {/* Badge status tracking */}
-                  <View style={[
-                    styles.trackingBadge,
-                    { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }
-                  ]}>
-                    <Icon
-                      name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'}
-                      size={13}
-                      color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'}
-                    />
-                    <Text style={[
-                      styles.trackingText,
-                      { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }
-                    ]}>
-                      {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
-                    </Text>
-                  </View>
-                </View>
-
-                {loc ? (
-                  <Text style={styles.locationText}>
-                    📍 {parseFloat(loc.latitude).toFixed(5)}, {parseFloat(loc.longitude).toFixed(5)}{'\n'}
-                    Terakhir update: {new Date(loc.created_at).toLocaleString('id-ID')}
-                  </Text>
-                ) : (
-                  <Text style={styles.noLocation}>Belum ada data lokasi</Text>
-                )}
-              </View>
-            );
-          })}
-        </>
-      )}
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8f9fa' 
+  container:{
+    flex:1,
+    backgroundColor:"#f5f7fb"
   },
 
-  title: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    textAlign: 'center', 
-    marginVertical: 15 
+  title:{
+    fontSize:22,
+    fontWeight:"bold",
+    textAlign:"center",
+    marginVertical:16
   },
 
-  subtitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    marginHorizontal: 15, 
-    marginTop: 10, 
-    marginBottom: 12 
+  subtitle:{
+    fontSize:18,
+    fontWeight:"600",
+    marginHorizontal:16,
+    marginTop:10,
+    marginBottom:10
   },
 
-  mapContainer: { 
-    height: 380, 
-    margin: 15, 
-    borderRadius: 15, 
-    overflow: 'hidden', 
-    elevation: 5 
+  mapContainer:{
+    height:300,
+    marginHorizontal:16,
+    marginBottom:10,
+    borderRadius:14,
+    overflow:"hidden"
   },
 
-  map: { 
-    flex: 1 
+  map:{
+    flex:1
   },
 
-  driverCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 15,
-    marginBottom: 12,
-    padding: 15,
-    borderRadius: 12,
-    elevation: 3,
-  },
-  
-  driverHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 6 
-  },
-  
-  driverName: { 
-    fontSize: 17, 
-    fontWeight: '600', 
-    marginLeft: 10 
+  driverCard:{
+    backgroundColor:"#fff",
+    padding:16,
+    borderRadius:14,
+    marginBottom:12
   },
 
-  locationText: { 
-    fontSize: 14, 
-    color: '#2c3e50', 
-    lineHeight: 20 
+  driverHeader:{
+    flexDirection:"row",
+    alignItems:"center",
+    marginBottom:8
   },
 
-  noLocation: { 
-    fontSize: 14, 
-    color: '#95a5a6', 
-    fontStyle: 'italic' 
+  driverName:{
+    marginLeft:10,
+    fontWeight:"600",
+    fontSize:16
   },
 
-  center: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  locationText:{
+    fontSize:14,
+    color:"#374151",
+    lineHeight:20
   },
 
-  loadingText: { 
-    marginTop: 12, 
-    fontSize: 16, 
-    color: '#666' 
+  noLocation:{
+    fontSize:14,
+    color:"#9ca3af",
+    fontStyle:"italic"
   },
 
-  errorBox: { 
-    margin: 20, 
-    padding: 20, 
-    backgroundColor: '#ffe6e6', 
-    borderRadius: 10 
+  trackingBadge:{
+    flexDirection:"row",
+    alignItems:"center",
+    paddingHorizontal:8,
+    paddingVertical:4,
+    borderRadius:20,
+    marginLeft:"auto",
+    gap:4
   },
 
-  errorText: { 
-    color: 'red', 
-    textAlign: 'center' 
+  trackingText:{
+    fontSize:11,
+    fontWeight:"600"
   },
 
-  trackingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 'auto',
-    gap: 4,
+  errorBox:{
+    margin:16,
+    padding:16,
+    backgroundColor:"#fee2e2",
+    borderRadius:12
   },
 
-  trackingText: {
-    fontSize: 11,
-    fontWeight: '600',
+  errorText:{
+    color:"#dc2626",
+    textAlign:"center"
   },
+
+  center:{
+    flex:1,
+    justifyContent:"center",
+    alignItems:"center"
+  },
+
+  loadingText:{
+    marginTop:10,
+    color:"#6b7280"
+  }
 
 });

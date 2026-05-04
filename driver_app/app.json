@@ -28,7 +28,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Izin untuk melacak lokasi saat pengiriman berlangsung."
+        }
+      ]
     ],
     "extra": {
       "eas": {

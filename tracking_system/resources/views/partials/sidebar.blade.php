@@ -13,7 +13,7 @@
             <!-- Menu Umum -->
             <li>
                 <a href="{{ route(strtolower(Auth::user()->role) . '.dashboard') }}"
-                   class="nav-link {{ request()->routeIs(Auth::user()->role . '.dashboard') ? 'active' : '' }}">
+                class="nav-link {{ request()->routeIs(strtolower(Auth::user()->role) . '.dashboard') ? 'active' : '' }}">
                     <i class="bi bi-speedometer2 me-2"></i>
                     <span class="menu-text">Dashboard</span>
                 </a>
@@ -56,51 +56,55 @@
                         <span class="menu-text">Pemantauan</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('admin.rekap.index') }}"
+                    class="nav-link {{ request()->routeIs('admin.rekap.*') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line me-2"></i>
+                        <span class="menu-text">Rekap</span>
+                    </a>
+                </li>
 
             <!-- Menu Ahli Gizi -->
             @elseif (Auth::user()->isGizi())
                 <li>
-                    <a href="#" class="nav-link">
-                        <i class="bi bi-clipboard-check me-2"></i>
-                        <span class="menu-text">Verifikasi Menu</span>
+                    <a href="{{ route('gizi.menu.index') }}"
+                    class="nav-link {{ request()->routeIs('gizi.menu.*') ? 'active' : '' }}">
+                        <i class="bi bi-egg-fried me-2"></i>
+                        <span class="menu-text">Kelola Menu</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="nav-link">
-                        <i class="bi bi-graph-up me-2"></i>
-                        <span class="menu-text">Laporan Gizi</span>
+                    <a href="{{ route('gizi.rekap.index') }}"
+                    class="nav-link {{ request()->routeIs('gizi.rekap.*') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line me-2"></i>
+                        <span class="menu-text">Rekap</span>
                     </a>
                 </li>
 
             <!-- Menu Akuntan -->
             @elseif (Auth::user()->isAkuntan())
                 <li>
-                    <a href="#" class="nav-link">
+                    <a href="{{ route('akuntan.rab.index') }}"
+                    class="nav-link {{ request()->routeIs('akuntan.rab.index') ? 'active' : '' }}">
                         <i class="bi bi-calculator me-2"></i>
-                        <span class="menu-text">Kelola Anggaran</span>
+                        <span class="menu-text">Kelola RAB</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="nav-link">
-                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>
-                        <span class="menu-text">Laporan Keuangan</span>
-                    </a>
-                </li>
-
-            <!-- Menu Aslap -->
-            @elseif (Auth::user()->isAslap())
-                <li>
-                    <a href="#" class="nav-link">
-                        <i class="bi bi-truck me-2"></i>
-                        <span class="menu-text">Jadwal Distribusi</span>
+                    <a href="{{ route('akuntan.rab.pre-order') }}" 
+                    class="nav-link {{ request()->routeIs('akuntan.rab.pre-order', 'akuntan.rab.export-pdf') ? 'active' : '' }}">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <span class="menu-text">Pre Order RAB</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="nav-link">
-                        <i class="bi bi-check-circle me-2"></i>
-                        <span class="menu-text">Konfirmasi Pengiriman</span>
+                    <a href="{{ route('akuntan.rekap.index') }}"
+                    class="nav-link {{ request()->routeIs('akuntan.rekap.*') ? 'active' : '' }}">
+                        <i class="bi bi-bar-chart-line me-2"></i>
+                        <span class="menu-text">Rekap</span>
                     </a>
                 </li>
+            
 
             <!-- Menu Logout -->
             @endif

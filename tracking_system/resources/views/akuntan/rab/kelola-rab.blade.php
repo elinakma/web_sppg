@@ -180,19 +180,23 @@
                                                                     @foreach($menu->bahan as $bahan)
                                                                     <tr>
                                                                         <td>{{ $bahan->nama_bahan }}</td>
-                                                                        <td class="text-center">{{ $bahan->jumlah }}</td>
+                                                                        <td class="text-center">
+                                                                            {{ is_numeric($bahan->jumlah) ? rtrim(rtrim(number_format($bahan->jumlah, 2, ',', '.'), '0'), ',') : $bahan->jumlah }}
+                                                                        </td>
                                                                         <td class="text-center">{{ $bahan->satuan }}</td>
                                                                         <td>
-                                                                            <input type="number"
-                                                                                   class="form-control form-control-sm text-end harga-input"
-                                                                                   value="{{ $bahan->harga_satuan }}"
-                                                                                   min="0" step="100"
-                                                                                   data-jumlah="{{ $bahan->jumlah }}"
-                                                                                   data-subtotal-id="subtotal-{{ $bahan->id }}"
-                                                                                   data-tanggal="{{ $tgl }}"
-                                                                                   data-periode-id="{{ $distribusi->id }}"
-                                                                                   data-pagu-periode="{{ $totalPaguPeriode }}"
-                                                                                   data-bahan-id="{{ $bahan->id }}">
+                                                                            <input type="text"
+                                                                                class="form-control form-control-sm text-end harga-input"
+                                                                                value="{{ number_format($bahan->harga_satuan, 0, ',', '.') }}"
+                                                                                data-raw="{{ $bahan->harga_satuan }}"
+                                                                                min="0"
+                                                                                step="100"
+                                                                                data-jumlah="{{ $bahan->jumlah }}"
+                                                                                data-subtotal-id="subtotal-{{ $bahan->id }}"
+                                                                                data-tanggal="{{ $tgl }}"
+                                                                                data-periode-id="{{ $distribusi->id }}"
+                                                                                data-pagu-periode="{{ $totalPaguPeriode }}"
+                                                                                data-bahan-id="{{ $bahan->id }}">
                                                                         </td>
                                                                         <td class="text-end fw-semibold" id="subtotal-{{ $bahan->id }}">
                                                                             Rp {{ number_format(($bahan->jumlah ?? 0) * ($bahan->harga_satuan ?? 0), 0, ',', '.') }}
@@ -234,19 +238,23 @@
                                                                     @foreach($menu->bahan as $bahan)
                                                                     <tr>
                                                                         <td>{{ $bahan->nama_bahan }}</td>
-                                                                        <td class="text-center">{{ $bahan->jumlah }}</td>
+                                                                        <td class="text-center">
+                                                                            {{ is_numeric($bahan->jumlah) ? rtrim(rtrim(number_format($bahan->jumlah, 2, ',', '.'), '0'), ',') : $bahan->jumlah }}
+                                                                        </td>
                                                                         <td class="text-center">{{ $bahan->satuan }}</td>
                                                                         <td>
-                                                                            <input type="number"
-                                                                                   class="form-control form-control-sm text-end harga-input"
-                                                                                   value="{{ $bahan->harga_satuan }}"
-                                                                                   min="0" step="100"
-                                                                                   data-jumlah="{{ $bahan->jumlah }}"
-                                                                                   data-subtotal-id="subtotal-{{ $bahan->id }}"
-                                                                                   data-tanggal="{{ $tgl }}"
-                                                                                   data-periode-id="{{ $distribusi->id }}"
-                                                                                   data-pagu-periode="{{ $totalPaguPeriode }}"
-                                                                                   data-bahan-id="{{ $bahan->id }}">
+                                                                            <input type="text"
+                                                                                class="form-control form-control-sm text-end harga-input"
+                                                                                value="{{ number_format($bahan->harga_satuan, 0, ',', '.') }}"
+                                                                                data-raw="{{ $bahan->harga_satuan }}"
+                                                                                min="0"
+                                                                                step="100"
+                                                                                data-jumlah="{{ $bahan->jumlah }}"
+                                                                                data-subtotal-id="subtotal-{{ $bahan->id }}"
+                                                                                data-tanggal="{{ $tgl }}"
+                                                                                data-periode-id="{{ $distribusi->id }}"
+                                                                                data-pagu-periode="{{ $totalPaguPeriode }}"
+                                                                                data-bahan-id="{{ $bahan->id }}">
                                                                         </td>
                                                                         <td class="text-end fw-semibold" id="subtotal-{{ $bahan->id }}">
                                                                             Rp {{ number_format(($bahan->jumlah ?? 0) * ($bahan->harga_satuan ?? 0), 0, ',', '.') }}
@@ -394,205 +402,243 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // ============================================================
-    // Update ringkasan HARIAN (card di bawah tabel bahan)
+    // Helper convert format rupiah ke angka
+    // contoh: 10.000 => 10000
+    // ============================================================
+    function angkaRupiah(nilai) {
+        if (!nilai) return 0;
+
+        return parseFloat(
+            nilai.toString()
+                .replace(/\./g, '')
+                .replace(',', '.')
+        ) || 0;
+    }
+
+    // ============================================================
+    // Update ringkasan HARIAN
     // ============================================================
     function updateRingkasanHarian(tanggal) {
         let totalHari = 0;
 
         document.querySelectorAll(`.harga-input[data-tanggal="${tanggal}"]`).forEach(input => {
             const jumlah = parseFloat(input.dataset.jumlah) || 0;
-            const harga  = parseFloat(input.value)         || 0;
-            totalHari   += jumlah * harga;
+            const harga  = angkaRupiah(input.value);
+
+            totalHari += jumlah * harga;
         });
 
-        const paguEl = document.getElementById(`pagu-${tanggal}`);
-        const pagu   = parseFloat(paguEl?.dataset.pagu) || 0;
+        const paguEl  = document.getElementById(`pagu-${tanggal}`);
+        const pagu    = parseFloat(paguEl?.dataset.pagu) || 0;
         const selisih = pagu - totalHari;
 
-        // --- Total Harga Harian ---
+        // Total Harga
         const totalEl = document.getElementById(`total-harga-${tanggal}`);
         if (totalEl) {
             totalEl.textContent = 'Rp ' + totalHari.toLocaleString('id-ID');
-            totalEl.classList.toggle('text-danger',  totalHari > pagu);
+            totalEl.classList.toggle('text-danger', totalHari > pagu);
             totalEl.classList.toggle('text-success', totalHari <= pagu);
         }
+
         const totalCard = document.getElementById(`total-card-${tanggal}`);
         if (totalCard) {
-            totalCard.classList.toggle('bg-danger',  totalHari > pagu);
+            totalCard.classList.toggle('bg-danger', totalHari > pagu);
             totalCard.classList.toggle('bg-success', totalHari <= pagu);
-            totalCard.classList.remove('bg-opacity-10');
             totalCard.classList.add('bg-opacity-10');
         }
 
-        // --- Selisih Harian ---
+        // Selisih
         const selisihEl    = document.getElementById(`selisih-${tanggal}`);
         const selisihLabel = document.getElementById(`selisih-label-${tanggal}`);
         const selisihCard  = document.getElementById(`selisih-card-${tanggal}`);
+
         if (selisihEl) {
             selisihEl.textContent = 'Rp ' + Math.abs(selisih).toLocaleString('id-ID');
-            selisihEl.classList.toggle('text-danger',  selisih < 0);
+            selisihEl.classList.toggle('text-danger', selisih < 0);
             selisihEl.classList.toggle('text-success', selisih >= 0);
         }
-        if (selisihLabel) selisihLabel.textContent = selisih >= 0 ? 'Sisa Pagu' : 'Defisit';
+
+        if (selisihLabel) {
+            selisihLabel.textContent = selisih >= 0 ? 'Sisa Pagu' : 'Defisit';
+        }
+
         if (selisihCard) {
-            selisihCard.classList.toggle('bg-danger',  selisih < 0);
+            selisihCard.classList.toggle('bg-danger', selisih < 0);
             selisihCard.classList.toggle('bg-success', selisih >= 0);
-            selisihCard.classList.remove('bg-opacity-10');
             selisihCard.classList.add('bg-opacity-10');
         }
 
-        // --- Badge mini di header accordion hari ---
+        // Badge header hari
         const badgeTotal = document.getElementById(`badge-hari-total-${tanggal}`);
         if (badgeTotal) {
             badgeTotal.textContent = 'Rp ' + totalHari.toLocaleString('id-ID');
             badgeTotal.className = totalHari > pagu ? 'text-danger' : 'text-success';
         }
+
         const badgeSelisih = document.getElementById(`badge-hari-selisih-${tanggal}`);
         if (badgeSelisih) {
             badgeSelisih.textContent = 'Rp ' + Math.abs(selisih).toLocaleString('id-ID');
             badgeSelisih.className = selisih < 0 ? 'text-danger' : 'text-success';
         }
-        const badgeSelisihLabel = document.getElementById(`badge-hari-selisih-label-${tanggal}`);
-        if (badgeSelisihLabel) badgeSelisihLabel.textContent = selisih >= 0 ? 'Sisa' : 'Defisit';
+
+        const badgeLabel = document.getElementById(`badge-hari-selisih-label-${tanggal}`);
+        if (badgeLabel) {
+            badgeLabel.textContent = selisih >= 0 ? 'Sisa' : 'Defisit';
+        }
     }
 
     // ============================================================
-    // Update ringkasan PERIODE (card bawah accordion hari)
+    // Update ringkasan PERIODE
     // ============================================================
     function updateRingkasanPeriode(periodeId) {
+
         let totalPeriode = 0;
 
         document.querySelectorAll(`.harga-input[data-periode-id="${periodeId}"]`).forEach(input => {
-            totalPeriode += (parseFloat(input.dataset.jumlah) || 0) * (parseFloat(input.value) || 0);
+            const jumlah = parseFloat(input.dataset.jumlah) || 0;
+            const harga  = angkaRupiah(input.value);
+
+            totalPeriode += jumlah * harga;
         });
 
-        const paguEl = document.getElementById(`ringkasan-pagu-${periodeId}`);
-        const pagu   = parseFloat(paguEl?.dataset.pagu) || 0;
+        const paguEl  = document.getElementById(`ringkasan-pagu-${periodeId}`);
+        const pagu    = parseFloat(paguEl?.dataset.pagu) || 0;
         const selisih = pagu - totalPeriode;
 
-        // Ringkasan total periode
-        const rtEl = document.getElementById(`ringkasan-total-${periodeId}`);
-        if (rtEl) {
-            rtEl.textContent = 'Rp ' + totalPeriode.toLocaleString('id-ID');
-            rtEl.classList.toggle('text-danger',  totalPeriode > pagu);
-            rtEl.classList.toggle('text-success', totalPeriode <= pagu);
+        const totalEl = document.getElementById(`ringkasan-total-${periodeId}`);
+        if (totalEl) {
+            totalEl.textContent = 'Rp ' + totalPeriode.toLocaleString('id-ID');
+            totalEl.classList.toggle('text-danger', totalPeriode > pagu);
+            totalEl.classList.toggle('text-success', totalPeriode <= pagu);
         }
 
-        // Ringkasan selisih periode
-        const rsEl    = document.getElementById(`ringkasan-selisih-${periodeId}`);
-        const rsLabel = document.getElementById(`ringkasan-selisih-label-${periodeId}`);
-        const rsCard  = document.getElementById(`ringkasan-selisih-card-${periodeId}`);
-        if (rsEl) {
-            rsEl.textContent = 'Rp ' + Math.abs(selisih).toLocaleString('id-ID');
-            rsEl.classList.toggle('text-danger',  selisih < 0);
-            rsEl.classList.toggle('text-success', selisih >= 0);
-        }
-        if (rsLabel) {
-            const icon = selisih < 0
-                ? '<i class="bi bi-exclamation-triangle text-danger me-1"></i>'
-                : '<i class="bi bi-check-circle text-success me-1"></i>';
-            rsLabel.innerHTML = icon + (selisih >= 0 ? 'Sisa Pagu Periode' : 'Defisit Periode');
-        }
-        if (rsCard) {
-            rsCard.classList.toggle('bg-danger',     selisih < 0);
-            rsCard.classList.toggle('bg-opacity-10', true);
+        const selisihEl = document.getElementById(`ringkasan-selisih-${periodeId}`);
+        const labelEl   = document.getElementById(`ringkasan-selisih-label-${periodeId}`);
+
+        if (selisihEl) {
+            selisihEl.textContent = 'Rp ' + Math.abs(selisih).toLocaleString('id-ID');
+            selisihEl.classList.toggle('text-danger', selisih < 0);
+            selisihEl.classList.toggle('text-success', selisih >= 0);
         }
 
-        // Badge di header accordion periode
+        if (labelEl) {
+            labelEl.textContent = selisih >= 0 ? 'Sisa Pagu Periode' : 'Defisit Periode';
+        }
+
+        // Badge header periode
         const badgeTotal = document.getElementById(`badge-total-val-${periodeId}`);
-        if (badgeTotal) badgeTotal.textContent = totalPeriode.toLocaleString('id-ID');
+        if (badgeTotal) {
+            badgeTotal.textContent = totalPeriode.toLocaleString('id-ID');
+        }
 
         const badgeSelisih = document.getElementById(`badge-selisih-val-${periodeId}`);
-        if (badgeSelisih) badgeSelisih.textContent = Math.abs(selisih).toLocaleString('id-ID');
+        if (badgeSelisih) {
+            badgeSelisih.textContent = Math.abs(selisih).toLocaleString('id-ID');
+        }
 
-        const badgeSelisihLabel = document.getElementById(`badge-selisih-label-${periodeId}`);
-        if (badgeSelisihLabel) badgeSelisihLabel.textContent = selisih >= 0 ? 'Sisa' : 'Defisit';
-
-        const badgeSelisihWrapper = document.getElementById(`badge-selisih-periode-${periodeId}`);
-        if (badgeSelisihWrapper) {
-            badgeSelisihWrapper.className = 'badge px-3 py-2 rounded-pill ' + (
-                selisih < 0
-                    ? 'bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25'
-                    : 'bg-success bg-opacity-15 text-success border border-success border-opacity-25'
-            );
+        const badgeLabel = document.getElementById(`badge-selisih-label-${periodeId}`);
+        if (badgeLabel) {
+            badgeLabel.textContent = selisih >= 0 ? 'Sisa' : 'Defisit';
         }
     }
 
     // ============================================================
-    // Event listener semua input harga
+    // Event input harga
     // ============================================================
     document.querySelectorAll('.harga-input').forEach(input => {
+
         input.addEventListener('input', function () {
-            // Update subtotal baris
+
+            // format otomatis
+            let angka = angkaRupiah(this.value);
+            this.value = angka.toLocaleString('id-ID');
+
+            // subtotal
             const subtotalEl = document.getElementById(this.dataset.subtotalId);
+
             if (subtotalEl) {
                 const jumlah = parseFloat(this.dataset.jumlah) || 0;
-                const harga  = parseFloat(this.value) || 0;
-                subtotalEl.textContent = 'Rp ' + (jumlah * harga).toLocaleString('id-ID');
+                const total  = jumlah * angka;
+
+                subtotalEl.textContent = 'Rp ' + total.toLocaleString('id-ID');
             }
-            // Update ringkasan harian
+
             updateRingkasanHarian(this.dataset.tanggal);
-            // Update ringkasan periode
             updateRingkasanPeriode(this.dataset.periodeId);
         });
+
     });
 
-    // Inisialisasi semua ringkasan saat halaman load
-    const tanggalList  = new Set();
-    const periodeList  = new Set();
+    // ============================================================
+    // Init saat load page
+    // ============================================================
+    const tanggalList = new Set();
+    const periodeList = new Set();
+
     document.querySelectorAll('.harga-input').forEach(input => {
         tanggalList.add(input.dataset.tanggal);
         periodeList.add(input.dataset.periodeId);
     });
-    tanggalList.forEach(t => updateRingkasanHarian(t));
-    periodeList.forEach(p => updateRingkasanPeriode(p));
+
+    tanggalList.forEach(tanggal => updateRingkasanHarian(tanggal));
+    periodeList.forEach(periode => updateRingkasanPeriode(periode));
 
     // ============================================================
-    // Simpan harga per tanggal (AJAX)
+    // Simpan harga
     // ============================================================
-    window.simpanHargaPerTanggal = function(tanggal) {
+    window.simpanHargaPerTanggal = function (tanggal) {
+
         const formData = new FormData();
 
         document.querySelectorAll(`.harga-input[data-tanggal="${tanggal}"]`).forEach(input => {
+
             const bahanId = input.dataset.bahanId;
-            if (bahanId) {
-                formData.append(`bahan[${bahanId}][id]`,           bahanId);
-                formData.append(`bahan[${bahanId}][harga_satuan]`, input.value || 0);
-            }
+            const harga   = angkaRupiah(input.value);
+
+            formData.append(`bahan[${bahanId}][id]`, bahanId);
+            formData.append(`bahan[${bahanId}][harga_satuan]`, harga);
         });
 
         fetch("{{ route('akuntan.rab.harga.bulk') }}", {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             }
         })
-        .then(r => r.json())
+        .then(res => res.json())
         .then(data => {
+
             if (data.success) {
-                showToast(`✅ Harga tanggal <strong>${tanggal}</strong> berhasil disimpan!`, 'success');
+                showToast('✅ Harga berhasil disimpan', 'success');
             } else {
-                showToast('❌ Gagal menyimpan: ' + (data.message || 'Unknown error'), 'danger');
+                showToast('❌ Gagal simpan data', 'danger');
             }
+
         })
-        .catch(err => {
-            console.error(err);
-            showToast('❌ Terjadi kesalahan saat menyimpan data.', 'danger');
+        .catch(() => {
+            showToast('❌ Terjadi kesalahan', 'danger');
         });
     };
 
     // ============================================================
-    // Helper: Toast notification
+    // Toast
     // ============================================================
-    function showToast(html, type = 'success') {
-        const el = document.createElement('div');
-        el.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3 shadow`;
-        el.style.cssText = 'z-index:9999; min-width:300px; max-width:500px;';
-        el.innerHTML = html + `<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        document.body.appendChild(el);
-        setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
+    function showToast(msg, type = 'success') {
+
+        const div = document.createElement('div');
+
+        div.className =
+            `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3 shadow`;
+
+        div.style.zIndex = '9999';
+        div.innerHTML = msg;
+
+        document.body.appendChild(div);
+
+        setTimeout(() => div.remove(), 2500);
     }
+
 });
 </script>
 @endsection

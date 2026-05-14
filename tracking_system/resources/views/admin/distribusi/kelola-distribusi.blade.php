@@ -23,15 +23,34 @@
             <hr style="margin-top: 10px; margin-bottom: 20px;">
 
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="mb-0 fw-bold">Kelola Distribusi MBG</h4>
-                <button type="button"
-                    class="btn"
-                    style="background-color: #133b84; color: white;"
-                    data-bs-toggle="modal"
-                    data-bs-target="#tambahDistribusiModal">
-                    <i class="bi bi-plus-circle me-1"></i> Tambah Distribusi
-                </button>
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h4 class="mb-0 fw-bold">Kelola Distribusi</h4>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Filter -->
+                    <form method="GET" class="d-flex align-items-center gap-2 filter-box">
+                        <input type="date"
+                            name="tanggal_awal"
+                            class="form-control form-control-sm rounded-pill filter-input"
+                            value="{{ request('tanggal_awal') }}">
+                        <span class="text-muted small">s/d</span>
+                        <input type="date"
+                            name="tanggal_akhir"
+                            class="form-control form-control-sm rounded-pill filter-input"
+                            value="{{ request('tanggal_akhir') }}">
+                        <button type="submit"
+                            class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-funnel me-1"></i> Filter
+                        </button>
+                    </form>
+                    <!-- Tombol Tambah -->
+                    <button type="button"
+                        class="btn btn-primary rounded-pill px-3 shadow-sm"
+                        style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;"
+                        data-bs-toggle="modal"
+                        data-bs-target="#tambahDistribusiModal">
+                        <i class="bi bi-plus-circle me-2"></i> Tambah Distribusi
+                    </button>
+                </div>
             </div>
 
             <!-- Table -->
@@ -43,7 +62,7 @@
                             <th>Tanggal Awal</th>
                             <th>Tanggal Akhir</th>
                             <th>Status</th>
-                            <th width="400">Aksi</th>
+                            <th width="300">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -53,48 +72,56 @@
                                 {{ $distribusi->firstItem() + $key }}
                             </td>
                             <td>
-                                {{ \Carbon\Carbon::parse($item->tanggal_awal)->format('d M Y') }} 
+                                {{ \Carbon\Carbon::parse($item->tanggal_awal)->locale('id')->translatedFormat('d M Y') }}
                             </td>
                             <td>
-                                {{ \Carbon\Carbon::parse($item->tanggal_akhir)->format('d M Y') }}
+                                {{ \Carbon\Carbon::parse($item->tanggal_akhir)->locale('id')->translatedFormat('d M Y') }}
                             </td>
                             <td class="text-center">
-                                <span class="badge px-3 py-2 text-center d-inline-block {{ $item->status_color ?? 'bg-secondary' }}" style="min-width: 80px;">
+                                <span class="badge status-badge d-inline-block {{ $item->status_color ?? 'bg-secondary' }}">
                                     {{ $item->status_display ?? ucfirst($item->status) }}
                                 </span>
                             </td>
-                            <td class="text-center d-flex justify-content-center flex-wrap gap-2">
-                                @if($item->status_display !== 'Selesai')
-                                <a href="{{ route('admin.distribusi.total', $item->id) }}"
-                                class="btn btn-sm btn-warning action-btn btn-uniform">
-                                    <i class="bi bi-truck me-1"></i> Lanjut
-                                </a>
-                                @endif
+                            <td class="text-center">
+                                <div class="action-group">
+                                    @if($item->status_display !== 'Selesai')
+                                    <a href="{{ route('admin.distribusi.total', $item->id) }}"
+                                    class="soft-btn btn-next"
+                                    data-title="Lanjut">
+                                        <i class="bi bi-truck"></i>
+                                    </a>
+                                    @endif
 
-                                <a href="{{ route('admin.distribusi.detail', $item->id) }}" class="btn btn-sm btn-primary btn-uniform">
-                                    <i class="bi bi-eye me-1"></i> Detail
-                                </a>
+                                    <a href="{{ route('admin.distribusi.detail', $item->id) }}"
+                                    class="soft-btn btn-detail"
+                                    data-title="Detail">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
 
-                                <a href="{{ route('admin.distribusi.berita-acara', $item->id) }}" 
-                                class="btn btn-sm btn-uniform" style="background-color: #133b84; color: white;" target="_blank">
-                                    <i class="bi bi-printer me-1"></i> Cetak
-                                </a>
+                                    <a href="{{ route('admin.distribusi.berita-acara', $item->id) }}"
+                                    class="soft-btn btn-print"
+                                    target="_blank"
+                                    data-title="Cetak">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
 
-                                @if($item->status_display !== 'Selesai')
-                                <button type="button"
-                                    class="btn btn-sm btn-danger btn-delete btn-uniform"
-                                    data-id="{{ $item->id }}"
-                                    data-nama="Distribusi {{ \Carbon\Carbon::parse($item->tanggal_awal)->format('d M Y') }}">
-                                    <i class="bi bi-trash me-1"></i> Hapus
-                                </button>
+                                    @if($item->status_display !== 'Selesai')
+                                    <button type="button"
+                                        class="soft-btn btn-delete btn-delete-trigger"
+                                        data-id="{{ $item->id }}"
+                                        data-title="Hapus"
+                                        data-nama="Distribusi {{ \Carbon\Carbon::parse($item->tanggal_awal)->format('d M Y') }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
 
-                                <form id="delete-form-{{ $item->id }}"
-                                    action="{{ route('admin.distribusi.destroy', $item->id) }}"
-                                    method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                                @endif
+                                    <form id="delete-form-{{ $item->id }}"
+                                        action="{{ route('admin.distribusi.destroy', $item->id) }}"
+                                        method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -109,12 +136,11 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
-                    Menampilkan
-                    <strong>{{ $distribusi->firstItem() }}</strong>
+                    Menampilkan <span class="badge bg-primary">{{ $distribusi->firstItem() }}</span>
                     –
-                    <strong>{{ $distribusi->lastItem() }}</strong>
+                    <span class="badge bg-primary">{{ $distribusi->lastItem() }}</span>
                     dari
-                    <strong>{{ $distribusi->total() }}</strong>
+                    <span class="badge bg-secondary">{{ $distribusi->total() }}</span>
                     distribusi
                 </div>
 
@@ -129,7 +155,9 @@
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-semibold">Tambah Distribusi</h5>
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-clipboard-data me-1"></i>Tambah Distribusi
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
@@ -139,18 +167,21 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Tanggal Awal</label>
-                            <input type="date" name="tanggal_awal" class="form-control" required>
+                            <input type="date" name="tanggal_awal" class="form-control shadow-sm" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Tanggal Akhir</label>
-                            <input type="date" name="tanggal_akhir" class="form-control" required>
+                            <input type="date" name="tanggal_akhir" class="form-control shadow-sm" required>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                        style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
                         Simpan
                     </button>
                 </div>
@@ -185,7 +216,7 @@
         <div class="success-icon">
             <i class="bi bi-check-lg"></i>
         </div>
-        <h5 class="fw-bold mt-3">Success</h5>
+        <h5 class="fw-bold mt-3">Sukses</h5>
         <p class="text-muted mb-0">
             {{ session('success') }}
         </p>
@@ -215,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', function () {
             deleteId = this.dataset.id;
-            message.innerHTML = `Yakin hapus <strong>${this.dataset.nama}</strong>?`;
+            message.innerHTML = `Yakin hapus data distribusi ini?`;
             overlay.classList.add('show');
         });
     });

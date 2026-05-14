@@ -1,5 +1,7 @@
 @extends('layouts.admin')
+
 @section('title', 'Kelola Distribusi Mingguan')
+
 @section('content')
 <div class="container py-4">
     <div class="card shadow-sm">
@@ -60,7 +62,7 @@
                                         data-bs-target="#collapse{{ $index }}" 
                                         aria-expanded="false" 
                                         aria-controls="collapse{{ $index }}">
-                                    {{ $namaHari }}, {{ $tanggal->format('d M Y') }}
+                                    {{ $namaHari }}, {{ $tanggal->locale('id')->translatedFormat('d M Y') }}
                                     <span class="ms-auto me-3 text-muted summary-preview" data-tanggal="{{ $tanggalStr }}">
                                         Penerima: 0 | Pagu: Rp 0
                                     </span>
@@ -142,9 +144,9 @@
                                     @endforeach
                                     </div>
 
-                                    <!-- Summary Total per Hari (real-time) -->
+                                    <!-- Summary Total per Hari -->
                                     <div class="mt-4 p-3 bg-info-subtle border border-info rounded summary-harian" data-tanggal="{{ $tanggalStr }}">
-                                        <h6 class="fw-bold mb-3 text-info">Total Penerima Manfaat - {{ $namaHari }} {{ $tanggal->format('d M Y') }}</h6>
+                                        <h6 class="fw-bold mb-3 text-info">Total Penerima Manfaat - {{ $namaHari }} {{ $tanggal->locale('id')->translatedFormat('d M Y') }}</h6>
                                         <div class="row text-center">
                                             <div class="col-md-4">
                                                 <strong>Porsi Kecil</strong><br>
@@ -175,9 +177,9 @@
                                     <i class="bi bi-calculator me-2 text-primary"></i>
                                     Total Pagu Mingguan
                                     <small class="text-muted fw-normal ms-2">
-                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
+                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->locale('id')->translatedFormat('d M Y') }}
                                         s/d
-                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->format('d M Y') }})
+                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->locale('id')->translatedFormat('d M Y') }} )
                                     </small>
                                 </h6>
                             </div>

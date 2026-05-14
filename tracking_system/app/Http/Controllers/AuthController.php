@@ -36,18 +36,25 @@ class AuthController extends Controller
         }
 
         if (Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
-            $request->session()->regenerate();
+        $user = Auth::user();
 
-            $user = Auth::user();
-
-            return match ($user->role) {
-                'Admin'    => redirect()->route('admin.dashboard'),
-                'Aslap'    => redirect()->route('aslap.dashboard'),
-                'Gizi'     => redirect()->route('gizi.dashboard'),
-                'Akuntan'  => redirect()->route('akuntan.dashboard'),
-                default    => redirect('/'),
-            };
+        // Restrict Role untuk Web
+        if (in_array($user->role, ['Driver', 'Aslap'])) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => ["Akun {$user->role} hanya dapat login melalui aplikasi mobile."],
+            ]);
         }
+
+        $request->session()->regenerate();
+
+        return match ($user->role) {
+            'Admin'    => redirect()->route('admin.dashboard'),
+            'Gizi'     => redirect()->route('gizi.dashboard'),
+            'Akuntan'  => redirect()->route('akuntan.dashboard'),
+            default    => redirect('/'),
+        };
+    }
 
         throw ValidationException::withMessages([
             'email' => ['Email atau password salah.'],

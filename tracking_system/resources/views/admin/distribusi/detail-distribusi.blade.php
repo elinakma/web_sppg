@@ -29,17 +29,17 @@
             <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <h5 class="fw-bold">Periode Minggu</h5>
+                        <h5 class="fw-bold">Periode Distribusi</h5>
                         <p>
-                            {{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }} 
+                            {{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->locale('id')->translatedFormat('d M Y') }} 
                             s/d 
-                            {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->format('d M Y') }}
+                            {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->locale('id')->translatedFormat('d M Y') }}
                         </p>
                     </div>
                     <div class="col-md-6">
                         <h5 class="fw-bold">Status</h5>
                         <p>
-                            <span class="badge fs-6 px-3 py-2 {{ $distribusi->status_color }}">
+                            <span class="badge status-badge d-inline-block fs-6 px-3 py-2 {{ $distribusi->status_color }}">
                                 {{ $distribusi->status_display }}
                             </span>
                         </p>
@@ -106,9 +106,9 @@
                                     <i class="bi bi-cash-stack me-2"></i>
                                     Total Pagu Mingguan
                                     <small class="text-muted fw-normal ms-2">
-                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->format('d M Y') }}
+                                        ({{ \Carbon\Carbon::parse($distribusi->tanggal_awal)->locale('id')->translatedFormat('d M Y') }}
                                         s/d
-                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->format('d M Y') }})
+                                        {{ \Carbon\Carbon::parse($distribusi->tanggal_akhir)->locale('id')->translatedFormat('d M Y') }} )
                                     </small>
                                 </h6>
                             </div>
@@ -136,7 +136,7 @@
                                 <div class="accordion-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm">
-                                            <thead class="table-light">
+                                            <thead class="table-light text-center">
                                                 <tr>
                                                     <th>Tanggal</th>
                                                     <th>Porsi Kecil</th>
@@ -144,7 +144,6 @@
                                                     <th>Total Penerima</th>
                                                     <th>Pagu Sekolah</th>
                                                     <th>Jenis Menu</th>
-                                                    <th>Keterangan</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -160,13 +159,12 @@
                                                         $jenisMenu = $data?->menu_kering > 0 ? 'Kering' : ($data?->menu_basah > 0 ? 'Basah' : '-');
                                                     @endphp
                                                     <tr>
-                                                        <td>{{ $tanggal->format('d M Y') }}</td>
+                                                        <td class="text-center">{{ $tanggal->locale('id')->translatedFormat('d M Y') }}</td>
                                                         <td class="text-center">{{ $porsiKecil }}</td>
                                                         <td class="text-center">{{ $porsiBesar }}</td>
                                                         <td class="text-center">{{ $total }}</td>
-                                                        <td class="text-end">Rp {{ number_format($paguSekolah, 0, ',', '.') }}</td>
+                                                        <td class="text-center">Rp {{ number_format($paguSekolah, 0, ',', '.') }}</td>
                                                         <td class="text-center">{{ $jenisMenu }}</td>
-                                                        <td>{{ $data?->keterangan ?? '-' }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

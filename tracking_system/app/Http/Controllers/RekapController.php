@@ -165,4 +165,42 @@ class RekapController extends Controller
                                     ->locale('id')->isoFormat('dddd, D MMMM Y'),
         ];
     }
+
+    public function cetakRekap($id)
+    {
+        $distribusi = Distribusi::findOrFail($id);
+
+        // Build data yang sama seperti di index
+        $rekapData = $this->buildRekapData($distribusi);
+
+        try {
+            ini_set('memory_limit', '2048M');
+
+            $pdf = \PDF::loadView('rekap.rekap-pdf', compact('rekapData', 'distribusi'));
+
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'defaultFont' => 'DejaVu Sans',
+                'dpi' => 120,
+            ]);
+
+            $filename = "Rekap_Distribusi_" . 
+                        Carbon::parse($distribusi->tanggal_awal)->format('d-m-Y') . 
+                        "_sd_" . 
+                        Carbon::parse($distribusi->tanggal_akhir)->format('d-m-Y') . 
+                        ".pdf";
+
+            return $pdf->stream($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generate PDF Rekap', [
+                'distribusi_id' => $id,
+                'message' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Gagal generate PDF. Silakan coba lagi.');
+        }
+    }
 }

@@ -23,31 +23,28 @@
             <hr style="margin-top: 10px; margin-bottom: 20px;">
             
             <!-- Header -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <h4 class="mb-0 fw-bold">Kelola Pengguna</h4>
-
-                <div class="d-flex gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <!-- Search -->
-                    <form action="{{ route('admin.pengguna.index') }}" method="GET">
-                        <div class="input-group">
-                            <input type="text"
-                                name="search"
-                                class="form-control"
-                                placeholder="Cari nama / email / role..."
-                                value="{{ request('search') }}">
-                            <button class="btn btn-outline-secondary" type="submit">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
+                    <form action="{{ route('admin.pengguna.index') }}" method="GET" class="d-flex align-items-center gap-2 filter-box">
+                        <input type="text"
+                            name="search"
+                            class="form-control form-control-sm rounded-pill filter-input"
+                            placeholder="Nama / email / role..."
+                            value="{{ request('search') }}">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" type="submit">
+                            <i class="bi bi-search me-1"></i> Cari
+                        </button>
                     </form>
 
-                    <!-- Tambah -->
+                    <!-- Tombol Tambah -->
                     <button type="button"
-                        class="btn"
-                        style="background-color: #133b84; color: white;"
+                        class="btn btn-primary rounded-pill px-3 shadow-sm"
+                        style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;"
                         data-bs-toggle="modal"
                         data-bs-target="#tambahPenggunaModal">
-                        <i class="bi bi-plus-circle me-1"></i> Tambah Pengguna
+                        <i class="bi bi-plus-circle me-2"></i> Tambah Pengguna
                     </button>
                 </div>
             </div>
@@ -58,7 +55,7 @@
                     <thead class="table-light text-center">
                         <tr>
                             <th width="60">No</th>
-                            <th>Nama</th>
+                            <th>Nama Pengguna</th>
                             <th>Email</th>
                             <th>Telepon</th>
                             <th>Role</th>
@@ -77,44 +74,49 @@
                             <td class="text-center">
                                 {{ $user->telepon ?? '-' }}
                             </td>
-                            <td style="text-align: center;">
-                                <span class="role-badge role-{{ strtolower($user->role) }}">
+                            <td class="text-center">
+                                <span class="badge role-badge d-inline-block role-{{ strtolower($user->role) }}">
                                     {{ ucfirst($user->role) }}
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge px-3 py-2 {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
+                                <span class="badge status-badge d-inline-block {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ $user->status }}
                                 </span>
                             </td>
-                            <td class="text-center">
-                                <!-- Edit -->
-                                <button type="button" 
-                                    class="btn btn-sm btn-warning action-btn edit-btn" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#editPenggunaModal" 
-                                    data-id="{{ $user->id }}"
-                                    data-name="{{ $user->name }}"
-                                    data-email="{{ $user->email }}"
-                                    data-telepon="{{ $user->telepon }}"
-                                    data-role="{{ $user->role }}">
-                                    <i class="bi bi-pencil-square"></i> Edit
-                                </button>
 
-                                <!-- Hapus -->
-                                <form id="delete-form-{{ $user->id }}"
-                                    action="{{ route('admin.pengguna.destroy', $user) }}"
-                                    method="POST"
-                                    class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
+                            <td class="text-center">
+                                <div class="action-group">
+                                    <!-- Edit -->
                                     <button type="button"
-                                        class="btn btn-sm btn-danger action-btn btn-delete"
+                                        class="soft-btn btn-detail edit-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editPenggunaModal"
                                         data-id="{{ $user->id }}"
-                                        data-name="{{ $user->name }}">
-                                        <i class="bi bi-trash"></i> Hapus
+                                        data-name="{{ $user->name }}"
+                                        data-email="{{ $user->email }}"
+                                        data-telepon="{{ $user->telepon }}"
+                                        data-role="{{ $user->role }}"
+                                        data-title="Edit">
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>
-                                </form>
+
+                                    <!-- Hapus -->
+                                    <button type="button"
+                                        class="soft-btn btn-delete btn-delete-trigger"
+                                        data-id="{{ $user->id }}"
+                                        data-title="Hapus"
+                                        data-nama="{{ $user->name }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+
+                                    <form id="delete-form-{{ $user->id }}"
+                                        action="{{ route('admin.pengguna.destroy', $user) }}"
+                                        method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -129,12 +131,11 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
-                    Menampilkan
-                    <strong>{{ $users->firstItem() }}</strong>
+                    Menampilkan <span class="badge bg-primary">{{ $users->firstItem() }}</span>
                     –
-                    <strong>{{ $users->lastItem() }}</strong>
+                    <span class="badge bg-primary">{{ $users->lastItem() }}</span>
                     dari
-                    <strong>{{ $users->total() }}</strong>
+                    <span class="badge bg-secondary">{{ $users->total() }}</span>
                     pengguna
                 </div>
 
@@ -148,7 +149,9 @@
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Tambah Pengguna</h5>
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-person-badge me-1"></i>Tambah Pengguna
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -159,7 +162,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nama Pengguna</label>
                                 <input type="text" name="name"
-                                    class="form-control @error('name') is-invalid @enderror"
+                                    class="form-control shadow-sm @error('name') is-invalid @enderror"
                                     value="{{ old('name') }}" required>
                                 @error('name')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -169,7 +172,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <input type="email" name="email"
-                                    class="form-control @error('email') is-invalid @enderror"
+                                    class="form-control shadow-sm @error('email') is-invalid @enderror"
                                     value="{{ old('email') }}" required>
                                 @error('email')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -181,7 +184,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text bg-light">+62</span>
                                     <input type="text" name="telepon"
-                                        class="form-control @error('telepon') is-invalid @enderror"
+                                        class="form-control shadow-sm @error('telepon') is-invalid @enderror"
                                         placeholder="859xxxxxxxx"
                                         value="{{ old('telepon') }}"
                                         pattern="[8-9][0-9]{8,12}"
@@ -210,7 +213,7 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Password</label>
-                                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" required>
+                                <input type="password" name="password" class="form-control shadow-sm @error('password') is-invalid @enderror" required>
                                 @error('password')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -218,14 +221,17 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Konfirmasi Password</label>
-                                <input type="password" name="password_confirmation" class="form-control" required>
+                                <input type="password" name="password_confirmation" class="form-control shadow-sm" required>
                             </div>
                         </div>
                     </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn" style="background-color:#133b84;color:white">
+        
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                            style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
                             Simpan
                         </button>
                     </div>
@@ -239,7 +245,9 @@
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Edit Pengguna</h5>
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-person-badge me-1"></i>Edit Pengguna
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -251,13 +259,13 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Nama Pengguna</label>
-                                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" required>
+                                <input type="text" name="name" class="form-control shadow-sm @error('name') is-invalid @enderror" required>
                                 @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
-                                <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" required>
+                                <input type="email" name="email" class="form-control shadow-sm @error('email') is-invalid @enderror" required>
                                 @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
@@ -265,7 +273,7 @@
                                 <label class="form-label">Nomor Telepon</label>
                                 <div class="input-telp">
                                     <span class="input-telp-text">+62</span>
-                                    <input type="text" name="telepon" class="form-control @error('telepon') is-invalid @enderror"
+                                    <input type="text" name="telepon" class="form-control shadow-sm @error('telepon') is-invalid @enderror"
                                         placeholder="859xxxxxxxx" pattern="[8-9][0-9]{8,12}">
                                 </div>
                                 @error('telepon') 
@@ -275,7 +283,7 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Role</label>
-                                <select name="role" class="form-select @error('role') is-invalid @enderror" required>
+                                <select name="role" class="form-select shadow-sm @error('role') is-invalid @enderror" required>
                                     <option value="">Pilih Role</option>
                                     <option value="Admin">Admin</option>
                                     <option value="Aslap">Asisten Lapangan</option>
@@ -288,7 +296,7 @@
 
                             <div class="col-md-12">
                                 <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
+                                <select name="status" class="form-select shadow-sm">
                                     <option value="Aktif">Aktif</option>
                                     <option value="Nonaktif">Nonaktif</option>
                                 </select>
@@ -296,20 +304,23 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Password (kosongkan jika tidak ingin ubah)</label>
-                                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
+                                <input type="password" name="password" class="form-control shadow-sm @error('password') is-invalid @enderror">
                                 @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Konfirmasi Password</label>
-                                <input type="password" name="password_confirmation" class="form-control">
+                                <input type="password" name="password_confirmation" class="form-control shadow-sm">
                             </div>
                         </div>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                            style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
                             Simpan
                         </button>
                     </div>
@@ -348,7 +359,7 @@
         <div class="success-icon">
             <i class="bi bi-check-lg"></i>
         </div>
-        <h5 class="fw-bold mt-3">Success</h5>
+        <h5 class="fw-bold mt-3">Sukses</h5>
         <p class="text-muted mb-0">
             {{ session('success') }}
         </p>
@@ -429,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-delete').forEach(btn => {
         btn.addEventListener('click', function () {
             deleteId = this.dataset.id;
-            message.innerHTML = `Yakin hapus <strong>${this.dataset.name}</strong>?`;
+            message.innerHTML = `Yakin hapus pengguna ini?`;
             overlay.classList.add('show');
         });
     });

@@ -10,6 +10,7 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,7 +25,7 @@ export default function LoginScreen({ navigation }) {
       
       // Cek role dan arahkan ke halaman yang sesuai
       if (response.user.role === 'Driver') {
-        navigation.replace('Main');        // Dashboard + Distribusi Driver
+        navigation.replace('Main');        // Halaman Driver
       } 
       else if (response.user.role === 'Aslap') {
         navigation.replace('AslapMain');   // Halaman Aslap
@@ -34,8 +35,11 @@ export default function LoginScreen({ navigation }) {
       }
 
     } catch (error) {
-      Alert.alert('Login Gagal', error.response?.data?.error || 'Cek email/password Anda');
-      console.error(error);
+      const msg = error.response?.data?.error || 
+                 error.response?.data?.message || 
+                 'Login gagal. Cek email/password Anda.';
+      
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
@@ -50,13 +54,23 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.card}>
         <Text style={styles.title}>Sistem Distribusi{'\n'}Makan Bergizi Gratis</Text>
 
+        {/* ERROR MESSAGE BOX */}
+        {errorMessage ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#6c757d" style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Masukkan Email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errorMessage) setErrorMessage(''); // clear error saat ketik
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -68,7 +82,10 @@ export default function LoginScreen({ navigation }) {
             style={styles.input}
             placeholder="Masukkan Kata Sandi"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errorMessage) setErrorMessage('');
+            }}
             secureTextEntry
           />
         </View>
@@ -79,8 +96,10 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.forgotText}>Lupa Password?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginText}>MASUK</Text>
+        <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
+          <Text style={styles.loginText}>
+            {loading ? 'MEMPROSES...' : 'MASUK'}
+          </Text>
         </TouchableOpacity>
       </View>
     </ImageBackground>
@@ -151,5 +170,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  errorBox: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    width: '100%',
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

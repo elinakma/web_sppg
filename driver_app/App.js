@@ -4,13 +4,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 
+import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
-import TrackingScreen from './screens/MainTabs/TrackingScreen';
 import DistribusiScreen from './screens/MainTabs/DistribusiScreen';
 import ProfilScreen from './screens/MainTabs/ProfilScreen';
 import DashboardScreen from './screens/MainTabs/DashboardScreen';
 import AslapTabs from './screens/Aslap/AslapTabs';
+import AslapNotifikasiScreen from './screens/Aslap/AslapNotifikasiScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -51,9 +52,19 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="AslapMain" component={AslapTabs} />
+        <Stack.Screen
+          name="AslapNotifikasi"
+          component={AslapNotifikasiScreen}
+          options={{
+            headerShown: true,
+            title: 'Notifikasi',
+            headerBackTitle: 'Kembali',
+          }}
+        />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>

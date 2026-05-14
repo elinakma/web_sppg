@@ -3,7 +3,7 @@
 
         <div class="d-flex align-items-center gap-3 mb-1">
             <img src="/assets/images/logo-sppg.png" width="48" alt="Logo">
-            <div class="sidebar-title fw-bold fs-5">
+            <div class="sidebar-title fw-bold fs-6">
                 BADAN GIZI <br> NASIONAL
             </div>
         </div>
@@ -53,14 +53,14 @@
                     <a href="{{ route('admin.map.index') }}"
                        class="nav-link {{ request()->routeIs('admin.map.*') ? 'active' : '' }}">
                         <i class="bi bi-pin-map me-2"></i>
-                        <span class="menu-text">Pemantauan</span>
+                        <span class="menu-text">Kelola Pemantauan</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('admin.rekap.index') }}"
                     class="nav-link {{ request()->routeIs('admin.rekap.*') ? 'active' : '' }}">
                         <i class="bi bi-bar-chart-line me-2"></i>
-                        <span class="menu-text">Rekap</span>
+                        <span class="menu-text">Rekap Data</span>
                     </a>
                 </li>
 
@@ -70,7 +70,14 @@
                     <a href="{{ route('gizi.menu.index') }}"
                     class="nav-link {{ request()->routeIs('gizi.menu.*') ? 'active' : '' }}">
                         <i class="bi bi-egg-fried me-2"></i>
-                        <span class="menu-text">Kelola Menu</span>
+                        <span class="menu-text">Kelola Makanan</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('gizi.template.index') }}"
+                    class="nav-link {{ request()->routeIs('gizi.template.*') ? 'active' : '' }}">
+                        <i class="bi bi-layers me-2"></i>
+                        <span class="menu-text">Kelola Template</span>
                     </a>
                 </li>
                 <li>
@@ -104,19 +111,7 @@
                         <span class="menu-text">Rekap</span>
                     </a>
                 </li>
-            
-
-            <!-- Menu Logout -->
             @endif
-            <li class="mt-auto">
-                <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                    @csrf
-                    <button type="submit" class="nav-link text-danger w-100 text-start">
-                        <i class="bi bi-box-arrow-right me-2"></i>
-                        <span class="menu-text">Logout</span>
-                    </button>
-                </form>
-            </li>
 
         </ul>
     </div>

@@ -8,6 +8,7 @@ use App\Http\Controllers\PaguController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\DistribusiController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\MenuMakananController;
 use App\Http\Controllers\RabController;
 use App\Http\Controllers\RekapController;
@@ -88,6 +89,16 @@ Route::middleware('auth', 'verified')->group(function () {
         Route::get('/map', [MapController::class, 'index'])->name('map.index');
 
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap/cetak/{id}', [RekapController::class, 'cetakRekap'])->name('rekap.cetak');
+
+        Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
+            Route::get('/',              [NotifikasiController::class, 'index'])->name('index');
+            Route::get('/dropdown',      [NotifikasiController::class, 'dropdown'])->name('dropdown');
+            Route::post('/{notifikasi}/baca',  [NotifikasiController::class, 'baca'])->name('baca');
+            Route::post('/baca-semua',   [NotifikasiController::class, 'bacaSemua'])->name('baca-semua');
+            Route::delete('/{notifikasi}',     [NotifikasiController::class, 'destroy'])->name('destroy');
+            Route::delete('/hapus-semua', [NotifikasiController::class, 'hapusSemua'])->name('hapus-semua');
+        });
     });
 
     Route::prefix('gizi')->name('gizi.')->group(function () {
@@ -95,14 +106,31 @@ Route::middleware('auth', 'verified')->group(function () {
             return view('gizi.dashboard_gizi');
         })->name('dashboard');
 
-        Route::prefix('menu')->name('menu.')->group(function () {
-            Route::get('/', [MenuMakananController::class, 'index'])->name('index');
-            Route::post('/', [MenuMakananController::class, 'store'])->name('store');
-            Route::put('/{menu}', [MenuMakananController::class, 'update'])->name('update');
-            Route::delete('/{menu}', [MenuMakananController::class, 'destroy'])->name('destroy');
-        });
+            // ── Menu Harian ───────────────────────────────────────────────────
+            Route::prefix('menu')->name('menu.')->group(function () {
+                Route::get('/',          [MenuMakananController::class, 'index'])->name('index');
+                Route::post('/',         [MenuMakananController::class, 'store'])->name('store');
+                Route::put('/{menu}',    [MenuMakananController::class, 'update'])->name('update');
+                Route::delete('/{menu}', [MenuMakananController::class, 'destroy'])->name('destroy');
+            });
+        
+            // ── Template Menu ─────────────────────────────────────────────────
+            Route::prefix('template')->name('template.')->group(function () {
+                Route::get('/',          [MenuMakananController::class, 'template'])->name('index');
+                Route::post('/',         [MenuMakananController::class, 'storeTemplate'])->name('store');
+                Route::put('/{menu}',    [MenuMakananController::class, 'update'])->name('update');
+                Route::delete('/{menu}', [MenuMakananController::class, 'destroy'])->name('destroy');
+        
+                // API endpoint untuk auto-fill bahan dari template (JSON)
+                Route::get('/{menu}/detail', [MenuMakananController::class, 'templateDetail'])->name('detail');
+            });       
+
+            Route::prefix('akg')->name('akg.')->group(function () {
+                Route::post('/store', [MenuMakananController::class, 'storeAkgHarian'])->name('store');
+            });
 
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap/cetak/{id}', [RekapController::class, 'cetakRekap'])->name('rekap.cetak');
     });
 
     Route::prefix('akuntan')->name('akuntan.')->group(function () {
@@ -119,5 +147,6 @@ Route::middleware('auth', 'verified')->group(function () {
         });
 
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap/cetak/{id}', [RekapController::class, 'cetakRekap'])->name('rekap.cetak');
     });
 });

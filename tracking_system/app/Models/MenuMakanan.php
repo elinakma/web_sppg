@@ -22,4 +22,9 @@ class MenuMakanan extends Model
     {
         return $this->hasMany(BahanMakanan::class, 'menu_makanan_id');
     }
+
+    public function akg()
+    {
+        return $this->hasOne(AkgMenu::class, 'menu_makanan_id');
+    }
 }

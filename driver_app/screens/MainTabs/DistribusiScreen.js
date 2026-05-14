@@ -15,7 +15,6 @@ import {
   startTracking,
   stopTracking,
   checklistSekolah,
-  sendLocation
 } from '../../utils/api';
 
 import * as Location from 'expo-location';
@@ -23,34 +22,26 @@ import * as Location from 'expo-location';
 export default function DistribusiScreen() {
 
   const [sekolahList, setSekolahList] = useState([]);
-  const [isTracking, setIsTracking] = useState(false);
+  const [isTracking, setIsTracking]   = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const intervalRef = useRef(null);
-
-  // ================= FETCH DATA =================
-
+  // Fetch distribusi hari ini dari server 
   const fetchSekolah = async () => {
     try {
-
       const data = await getDistribusi();
-
-      console.log("Response sekolah:", data);
-
       setSekolahList(data);
 
+      // Jika ada yang masih 'dikirim' → tracking sedang aktif
+      const adaYangDikirim = data.some(s => s.status_harian === 'dikirim');
+      setIsTracking(adaYangDikirim);
+
     } catch (error) {
-
-      console.log("Error fetch sekolah", error);
+      console.log('Error fetch sekolah', error);
       setSekolahList([]);
-
     } finally {
-
       setLoading(false);
       setRefreshing(false);
-
     }
   };
 
@@ -63,49 +54,45 @@ export default function DistribusiScreen() {
     fetchSekolah();
   };
 
-  // ================= PROGRESS =================
-
+  // Kalkulasi progress 
   const totalSekolah = sekolahList.length || 0;
+  const selesai      = sekolahList.filter(s => s.status_harian === 'selesai').length;
+  const progress     = totalSekolah === 0 ? 0 : selesai / totalSekolah;
 
-  const selesai = sekolahList.filter(
-    i => i.status_harian === "selesai"
-  ).length;
+  // Semua selesai = semua status 'selesai' (tidak ada draf / dikirim)
+  const semuaSelesai = totalSekolah > 0
+    && sekolahList.every(s => s.status_harian === 'selesai');
 
-  const progress = totalSekolah === 0 ? 0 : selesai / totalSekolah;
-
-  const semuaSelesai = totalSekolah > 0 && selesai === totalSekolah;
-
-  // ================= START TRACKING =================
-
+  // Start Tracking 
   const handleStartTracking = async () => {
     Alert.alert(
-      "Mulai Tracking?",
-      "GPS akan terus berjalan meskipun aplikasi ditutup.",
+      'Mulai Tracking?',
+      'GPS akan terus berjalan meskipun aplikasi ditutup.',
       [
-        { text: "Batal", style: "cancel" },
+        { text: 'Batal', style: 'cancel' },
         {
-          text: "Mulai",
+          text: 'Mulai',
           onPress: async () => {
             try {
               const { status } = await Location.requestForegroundPermissionsAsync();
               if (status !== 'granted') {
-                Alert.alert("Izin GPS ditolak");
+                Alert.alert('Izin GPS ditolak');
                 return;
               }
 
               await Location.requestBackgroundPermissionsAsync();
 
-              await startTracking();   // update status ke 'dikirim'
+              // Tandai semua distribusi hari ini → 'dikirim' di server
+              await startTracking();
 
-              // Mulai background location
               await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
                 accuracy: Location.Accuracy.High,
-                timeInterval: 10000,        // setiap 10 detik
-                distanceInterval: 20,      // atau setiap bergerak 20 meter
+                timeInterval: 10000,
+                distanceInterval: 20,
                 showsBackgroundLocationIndicator: true,
                 foregroundService: {
-                  notificationTitle: "Tracking Pengiriman",
-                  notificationBody: "Sedang mengirim lokasi...",
+                  notificationTitle: 'Tracking Pengiriman',
+                  notificationBody: 'Sedang mengirim lokasi...',
                 },
               });
 
@@ -114,7 +101,7 @@ export default function DistribusiScreen() {
 
             } catch (error) {
               console.error(error);
-              Alert.alert("Gagal memulai tracking", error.message);
+              Alert.alert('Gagal memulai tracking', error.message);
             }
           }
         }
@@ -122,26 +109,33 @@ export default function DistribusiScreen() {
     );
   };
 
+  // Stop Tracking
   const handleStopTracking = async () => {
     Alert.alert(
-      "Stop Tracking?",
-      "Apakah Anda yakin ingin menghentikan perjalanan?",
+      'Stop Tracking?',
+      'Pengiriman hari ini akan ditandai selesai dan tombol tidak akan muncul lagi hari ini.',
       [
-        { text: "Batal", style: "cancel" },
+        { text: 'Batal', style: 'cancel' },
         {
-          text: "Stop",
+          text: 'Stop',
+          style: 'destructive',
           onPress: async () => {
             try {
               if (await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME)) {
                 await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
               }
 
+              // Tandai semua yang masih 'dikirim' → 'selesai' di server
               await stopTracking();
+
               setIsTracking(false);
+
+              // Refresh → sekarang semua status jadi 'selesai'
+              // → semuaSelesai = true → tombol otomatis hilang
               fetchSekolah();
 
             } catch (error) {
-              Alert.alert("Gagal menghentikan tracking");
+              Alert.alert('Gagal menghentikan tracking');
             }
           }
         }
@@ -149,125 +143,55 @@ export default function DistribusiScreen() {
     );
   };
 
-  // ================= CHECKLIST =================
-
+  // Checklist satu sekolah 
   const handleChecklist = async (item) => {
-
     if (!isTracking) {
-      Alert.alert("Tracking belum dimulai");
+      Alert.alert('Tracking belum dimulai');
       return;
     }
-
-    if (item.status_harian === "selesai") {
-      Alert.alert("Sekolah ini sudah selesai");
+    if (item.status_harian === 'selesai') {
+      Alert.alert('Sekolah ini sudah selesai');
       return;
     }
 
     Alert.alert(
-      "Checklist Pengiriman",
-      item.nama_sekolah,
+      'Checklist Pengiriman',
+      `Tandai ${item.nama_sekolah} selesai?`,
       [
-        { text: "Batal", style: "cancel" },
+        { text: 'Batal', style: 'cancel' },
         {
-          text: "Checklist",
+          text: 'Checklist',
           onPress: async () => {
-
             try {
-
               await checklistSekolah(item.id_distribusi_sekolah);
-
               fetchSekolah();
-
             } catch (error) {
-
-              Alert.alert("Gagal update");
-
+              Alert.alert('Gagal update');
             }
-
           }
         }
       ]
     );
-
   };
 
-  // ================= Button Tracking =================  
-  
-  {/* Sembunyikan semua tombol jika semua sekolah sudah selesai */}
-  {!semuaSelesai && (
-    <>
-      {!isTracking ? (
-        <TouchableOpacity
-          style={styles.startButton}
-          onPress={handleStartTracking}
-        >
-          <Icon name="play-circle" size={22} color="#fff" />
-          <Text style={styles.startText}>Mulai Tracking</Text>
-        </TouchableOpacity>
-
-      ) : (
-
-        <TouchableOpacity
-          style={styles.stopButton}
-          onPress={handleStopTracking}
-        >
-          <Icon name="stop-circle" size={22} color="#fff" />
-          <Text style={styles.startText}>Stop Tracking</Text>
-        </TouchableOpacity>
-
-      )}
-    </>
-  )}
-
-  {/* Tampilkan pesan jika semua selesai */}
-  {semuaSelesai && (
-    <View style={styles.doneBox}>
-      <Icon name="check-circle" size={22} color="#16a34a" />
-      <Text style={styles.doneText}>Semua pengiriman selesai hari ini</Text>
-    </View>
-  )}
-
-  // ================= STATUS =================
-
+  // Status badge
   const getStatusStyle = (status) => {
-
     switch (status) {
-
-      case "selesai":
-        return {
-          color: "#16a34a",
-          bg: "#dcfce7",
-          text: "Selesai"
-        };
-
-      case "dikirim":
-        return {
-          color: "#f59e0b",
-          bg: "#fef3c7",
-          text: "Dalam Perjalanan"
-        };
-
+      case 'selesai':
+        return { color: '#16a34a', bg: '#dcfce7', text: 'Selesai' };
+      case 'dikirim':
+        return { color: '#f59e0b', bg: '#fef3c7', text: 'Dalam Perjalanan' };
       default:
-        return {
-          color: "#6b7280",
-          bg: "#f3f4f6",
-          text: "Draf"
-        };
-
+        return { color: '#6b7280', bg: '#f3f4f6', text: 'Draf' };
     }
-
   };
 
-  // ================= CARD =================
-
+  // Render card sekolah 
   const renderSekolah = ({ item }) => {
-
     const status = getStatusStyle(item.status_harian);
 
     return (
-
       <View style={styles.card}>
-
         <View style={styles.headerCard}>
           <Icon name="school" size={24} color="#374151" />
           <Text style={styles.schoolName}>{item.nama_sekolah}</Text>
@@ -275,7 +199,7 @@ export default function DistribusiScreen() {
 
         <View style={styles.row}>
           <Icon name="account" size={18} color="#6b7280" />
-          <Text style={styles.info}>PIC: {item.pic || "-"}</Text>
+          <Text style={styles.info}>PIC: {item.pic || '-'}</Text>
         </View>
 
         <View style={styles.row}>
@@ -286,77 +210,74 @@ export default function DistribusiScreen() {
         </View>
 
         <View style={[styles.badge, { backgroundColor: status.bg }]}>
-          <Text style={{ color: status.color, fontWeight: "600" }}>
+          <Text style={{ color: status.color, fontWeight: '600' }}>
             {status.text}
           </Text>
         </View>
 
-        {isTracking && item.status_harian !== "selesai" && (
-
+        {/* Tombol checklist hanya muncul saat tracking aktif & belum selesai */}
+        {isTracking && item.status_harian !== 'selesai' && (
           <TouchableOpacity
             style={styles.checkButton}
             onPress={() => handleChecklist(item)}
           >
-
             <Icon name="check-circle" size={18} color="#fff" />
-
-            <Text style={styles.checkText}>
-              Tandai Selesai
-            </Text>
-
+            <Text style={styles.checkText}>Tandai Selesai</Text>
           </TouchableOpacity>
-
         )}
-
       </View>
-
     );
-
   };
 
-  // ================= LOADING =================
+  const renderBottomAction = () => {
+    if (semuaSelesai) {
+      return (
+        <View style={styles.doneBox}>
+          <Icon name="check-circle" size={22} color="#16a34a" />
+          <Text style={styles.doneText}>Semua pengiriman selesai hari ini</Text>
+        </View>
+      );
+    }
 
+    if (isTracking) {
+      return (
+        <TouchableOpacity style={styles.stopButton} onPress={handleStopTracking}>
+          <Icon name="stop-circle" size={22} color="#fff" />
+          <Text style={styles.startText}>Stop Tracking</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <TouchableOpacity style={styles.startButton} onPress={handleStartTracking}>
+        <Icon name="play-circle" size={22} color="#fff" />
+        <Text style={styles.startText}>Mulai Tracking</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // Loading
   if (loading) {
-
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#6366f1" />
       </SafeAreaView>
     );
-
   }
 
-  // ================= UI =================
-
+  // UI
   return (
-
     <SafeAreaView style={styles.container}>
 
-      <Text style={styles.title}>
-        Distribusi Sekolah
-      </Text>
+      <Text style={styles.title}>Distribusi Sekolah</Text>
 
-      {/* PROGRESS */}
-
+      {/* Progress */}
       <View style={styles.progressCard}>
-
-        <Text style={styles.progressTitle}>
-          Progress Pengiriman
-        </Text>
-
-        <Text style={styles.progressText}>
-          {selesai} / {totalSekolah} Sekolah
-        </Text>
-
+        <Text style={styles.progressTitle}>Progress Pengiriman</Text>
+        <Text style={styles.progressText}>{selesai} / {totalSekolah} Sekolah</Text>
         <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progress * 100}%` }
-            ]}
-          />
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
         </View>
-
       </View>
 
       <FlatList
@@ -373,38 +294,10 @@ export default function DistribusiScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
       />
 
-      {/* BUTTON TRACKING */}
-
-      {!isTracking ? (
-
-        <TouchableOpacity
-          style={styles.startButton}
-          onPress={handleStartTracking}
-        >
-          <Icon name="play-circle" size={22} color="#fff" />
-          <Text style={styles.startText}>
-            Mulai Tracking
-          </Text>
-        </TouchableOpacity>
-
-      ) : (
-
-        <TouchableOpacity
-          style={styles.stopButton}
-          onPress={handleStopTracking}
-        >
-          <Icon name="stop-circle" size={22} color="#fff" />
-          <Text style={styles.startText}>
-            Stop Tracking
-          </Text>
-        </TouchableOpacity>
-
-      )}
+      {renderBottomAction()}
 
     </SafeAreaView>
-
   );
-
 }
 
 const styles = StyleSheet.create({

@@ -15,4 +15,13 @@ class Location extends Model
         'longitude', 
         'tracked_at'
     ];
+
+    protected $casts = [
+        'tracked_at' => 'datetime',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

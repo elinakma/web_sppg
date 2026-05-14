@@ -5,39 +5,49 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use App\Models\User;
+use App\Models\Location;
 Use App\Models\Sekolah;
 use App\Models\Pengiriman;
 use App\Models\DistribusiSekolah;
+use App\Models\Notifikasi;
 use Carbon\Carbon;
 
 // Route login untuk mobile app (Driver dan Aslap)
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
-        'email' => ['required', 'email'],
+        'email'    => ['required', 'email'],
         'password' => ['required'],
     ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    // Cek akun Nonaktif
+    if ($user && $user->status === 'Nonaktif') {
+        return response()->json([
+            'error' => 'Akun Anda telah dinonaktifkan. Silakan hubungi administrator.'
+        ], 403);
+    }
 
     if (Auth::attempt($credentials)) {
         $user = Auth::user();
 
-        // Hanya izinkan Driver dan Aslap
+        // Restrict role mobile
         if (!in_array($user->role, ['Driver', 'Aslap'])) {
             return response()->json([
-                'error' => 'Role ini tidak diizinkan login di aplikasi mobile'
+                'error' => "Akun {$user->role} hanya dapat login melalui website."
             ], 403);
         }
 
-        // Buat token Sanctum
         $token = $user->createToken('mobile-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
+            'token'   => $token,
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'role'  => $user->role,
             ]
         ]);
     }
@@ -45,7 +55,7 @@ Route::post('/login', function (Request $request) {
     return response()->json([
         'error' => 'Email atau password salah'
     ], 401);
-})->name('api.login');
+});
 
 Route::post('/forgot-password', function (Request $request) {
     $request->validate([
@@ -128,24 +138,43 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         $validated = $request->validate([
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
+            'latitude'  => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
         ]);
 
-        // Simpan lokasi
-        $user->locations()->create([
-            'latitude' => $validated['latitude'],
-            'longitude' => $validated['longitude'],
-        ]);
+        try {
+            $location = Location::updateOrCreate(
+                ['user_id' => $user->id],           // unique key
+                [
+                    'latitude'   => $validated['latitude'],
+                    'longitude'  => $validated['longitude'],
+                    'tracked_at' => now(),
+                ]
+            );
 
-        return response()->json(['success' => true, 'message' => 'Lokasi berhasil dikirim']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Lokasi berhasil diupdate'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error Track Location', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan lokasi'
+            ], 500);
+        }
     });
 });
 
 // mengambil lokasi terakhir semua driver yg nanti akan ditampilkan di peta admin
 Route::get('/drivers-locations', function () {
     $drivers = User::where('role', 'Driver')
-                   ->with(['locations' => function ($query) {
+                   ->with(['location' => function ($query) {
                        $query->latest()->limit(1);
                    }])
                    ->get();
@@ -235,50 +264,79 @@ Route::post('/checklist-sekolah', function (Request $request) {
     $request->validate([
         'id_distribusi_sekolah' => 'required|exists:distribusi_sekolah,id',
     ]);
-
-    $user = $request->user();
-    $distribusi = DistribusiSekolah::findOrFail($request->id_distribusi_sekolah);
-
+ 
+    $user      = $request->user();
+    $distribusi = DistribusiSekolah::with('sekolah')->findOrFail($request->id_distribusi_sekolah);
+ 
     if ($distribusi->pengirim != $user->id) {
         return response()->json(['error' => 'Bukan tugas Anda'], 403);
     }
-
+ 
     if ($distribusi->status !== 'dikirim') {
         return response()->json(['error' => 'Status tidak valid untuk checklist'], 400);
     }
-
+ 
     $distribusi->update([
         'status' => 'selesai',
-        'waktu' => now(),
+        'waktu'  => now(),
     ]);
-
+ 
+    $namaSekolah = $distribusi->sekolah?->nama_sekolah ?? 'Sekolah #' . $distribusi->id_sekolah;
+ 
+    Notifikasi::kirimKeAdmin([
+        'distribusi_sekolah_id' => $distribusi->id,
+        'pengirim_id'           => $user->id,
+        'judul'                 => 'Pengiriman Selesai',
+        'pesan'                 => "Driver {$user->name} telah menyelesaikan pengiriman ke {$namaSekolah}.",
+        'tipe'                  => 'pengiriman_selesai',
+        'url'                   => route('admin.distribusi.detail', $distribusi->id_distribusi ?? ''),
+    ]);
+ 
     return response()->json([
         'success' => true,
         'message' => 'Pengiriman ditandai selesai.',
     ]);
 })->middleware('auth:sanctum');
-
+ 
 Route::post('/stop-tracking', function (Request $request) {
-
     $user = $request->user();
-
+ 
     if (!$user->isDriver()) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
-
-    DistribusiSekolah::where('pengirim', $user->id)
+ 
+    $selesai = DistribusiSekolah::with('sekolah')
+        ->where('pengirim', $user->id)
         ->whereDate('tanggal_harian', today())
         ->where('status', 'dikirim')
-        ->update([
-            'status' => 'selesai',
-            'waktu' => now(),
+        ->get();
+ 
+    // Update semua ke selesai
+    foreach ($selesai as $item) {
+        $item->update(['status' => 'selesai', 'waktu' => now()]);
+    }
+ 
+    if ($selesai->isNotEmpty()) {
+        $namaSekolahList = $selesai
+            ->map(fn($s) => $s->sekolah?->nama_sekolah ?? '-')
+            ->filter()
+            ->implode(', ');
+ 
+        $jumlah = $selesai->count();
+ 
+        Notifikasi::kirimKeAdmin([
+            'pengirim_id' => $user->id,
+            'judul'       => 'Perjalanan Selesai',
+            'pesan'       => "Driver {$user->name} telah menyelesaikan semua pengiriman ({$jumlah} sekolah): {$namaSekolahList}.",
+            'tipe'        => 'perjalanan_selesai',
+            'url'         => null,
         ]);
-
+    }
+ 
     return response()->json([
         'success' => true,
         'message' => 'Perjalanan selesai.',
     ]);
-
 })->middleware('auth:sanctum');
 
 
@@ -296,9 +354,7 @@ Route::middleware('auth:sanctum')->group(function () {
     $today = now()->toDateString();
 
     $drivers = User::where('role', 'Driver')
-        ->with(['locations' => function ($q) {
-            $q->latest()->limit(1);
-        }])
+        ->with('location') 
         ->get()
         ->map(function ($driver) use ($today) {
             $sedangBerjalan = DistribusiSekolah::where('pengirim', $driver->id)
@@ -306,12 +362,18 @@ Route::middleware('auth:sanctum')->group(function () {
                 ->where('status', 'dikirim')
                 ->exists();
 
+            $loc = $driver->location;
+
             return [
                 'id'              => $driver->id,
                 'name'            => $driver->name,
                 'email'           => $driver->email,
                 'sedang_berjalan' => $sedangBerjalan,
-                'locations'       => $driver->locations,
+                'location'        => $loc ? [
+                    'latitude'   => $loc->latitude,
+                    'longitude'  => $loc->longitude,
+                    'tracked_at' => $loc->tracked_at?->toISOString(),
+                ] : null,
             ];
         });
 
@@ -399,6 +461,99 @@ Route::middleware('auth:sanctum')->group(function () {
             });
 
         return response()->json(['success' => true, 'distribusi' => $distribusi]);
+    });
+
+    Route::get('/aslap/notifikasi/latest', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+ 
+        $notifikasi = Notifikasi::untukUser($user->id)
+            ->with('pengirim')
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(fn($n) => [
+                'id'       => $n->id,
+                'judul'    => $n->judul,
+                'pesan'    => $n->pesan,
+                'tipe'     => $n->tipe,
+                'dibaca'   => $n->dibaca,
+                'waktu'    => $n->waktuRelatif(),
+                'pengirim' => $n->pengirim?->name ?? '-',
+            ]);
+ 
+        $belumDibaca = Notifikasi::untukUser($user->id)
+            ->belumDibaca()
+            ->count();
+ 
+        return response()->json([
+            'success'      => true,
+            'notifikasi'   => $notifikasi,
+            'belum_dibaca' => $belumDibaca,
+        ]);
+    });
+ 
+    // 2. Baca semua (literal, harus di atas {id})
+    Route::post('/aslap/notifikasi/baca-semua', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+ 
+        Notifikasi::untukUser($user->id)
+            ->belumDibaca()
+            ->update(['dibaca' => true, 'waktu_dibaca' => now()]);
+ 
+        return response()->json(['success' => true]);
+    });
+ 
+    // 3. List semua notifikasi dengan paginasi
+    Route::get('/aslap/notifikasi', function (Request $request) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+ 
+        $notifikasi = Notifikasi::untukUser($user->id)
+            ->with('pengirim')
+            ->latest()
+            ->paginate(20);
+ 
+        return response()->json([
+            'success'    => true,
+            'data'       => $notifikasi->map(fn($n) => [
+                'id'       => $n->id,
+                'judul'    => $n->judul,
+                'pesan'    => $n->pesan,
+                'tipe'     => $n->tipe,
+                'dibaca'   => $n->dibaca,
+                'waktu'    => $n->waktuRelatif(),
+                'pengirim' => $n->pengirim?->name ?? '-',
+            ]),
+            'pagination' => [
+                'current_page' => $notifikasi->currentPage(),
+                'last_page'    => $notifikasi->lastPage(),
+                'total'        => $notifikasi->total(),
+            ],
+        ]);
+    });
+ 
+    // 4. Tandai notifikasi dibaca, {id} di paling bawah
+    Route::post('/aslap/notifikasi/{id}/baca', function (Request $request, $id) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+ 
+        $notif = Notifikasi::where('id', $id)
+                            ->where('user_id', $user->id)
+                            ->firstOrFail();
+ 
+        $notif->tandaiDibaca();
+ 
+        return response()->json(['success' => true]);
     });
 });
 

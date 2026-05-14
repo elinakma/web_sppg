@@ -15,7 +15,7 @@ class MapController extends Controller
         $today = now()->toDateString();
 
         $drivers = User::where('role', 'Driver')
-                    ->with(['locations' => function ($query) {
+                    ->with(['location' => function ($query) {
                         $query->latest()->limit(1);
                     }])
                     ->get()

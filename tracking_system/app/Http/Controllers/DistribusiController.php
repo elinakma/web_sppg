@@ -11,10 +11,23 @@ use Illuminate\Support\Facades\Log;
 
 class DistribusiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $distribusi = Distribusi::orderBy('tanggal_awal', 'desc')
-            ->paginate(8);
+        $query = Distribusi::query();
+
+        // Filter tanggal awal
+        if ($request->filled('tanggal_awal')) {
+            $query->whereDate('tanggal_awal', '>=', $request->tanggal_awal);
+        }
+
+        // Filter tanggal akhir
+        if ($request->filled('tanggal_akhir')) {
+            $query->whereDate('tanggal_akhir', '<=', $request->tanggal_akhir);
+        }
+        
+        $distribusi = $query->orderBy('tanggal_awal', 'desc')
+            ->paginate(8)
+            ->withQueryString();
 
         // status display untuk setiap distribusi
         foreach ($distribusi as $item) {

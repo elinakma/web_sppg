@@ -5,11 +5,22 @@ const API_BASE_URL = 'https://dipsacaceous-dere-bridgette.ngrok-free.dev/api';
 
 export const login = async (email, password) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/login`, { email, password }); // request login ke server
-    const { token } = response.data; // respon berupa token
-    await SecureStore.setItemAsync('authToken', token);  // Simpan token
+    const response = await axios.post(`${API_BASE_URL}/login`, 
+      { email, password },
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    const { token } = response.data;
+    await SecureStore.setItemAsync('authToken', token);
     return response.data; 
+
   } catch (error) {
+    console.error("Login Error Full:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -137,37 +148,113 @@ export const stopTracking = async () => {
 export const getAslapDriverLocations = async () => {
   const token = await SecureStore.getItemAsync('authToken');
   if (!token) throw new Error('No token found');
+ 
   const response = await axios.get(`${API_BASE_URL}/aslap/driver-locations`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
   });
-  return response.data.drivers || [];
+ 
+  const drivers = response.data.drivers || [];
+ 
+  return drivers.map(driver => ({
+    id:               driver.id,
+    name:             driver.name,
+    email:            driver.email,
+    sedang_berjalan:  driver.sedang_berjalan,
+    latitude:   driver.location?.latitude  ?? null,
+    longitude:  driver.location?.longitude ?? null,
+    tracked_at: driver.location?.tracked_at ?? null,
+    has_location: driver.location !== null,
+  }));
 };
 
 export const getAslapPengirimanHariIni = async () => {
   const token = await SecureStore.getItemAsync('authToken');
   if (!token) throw new Error('No token found');
+ 
   const response = await axios.get(`${API_BASE_URL}/aslap/pengiriman-hari-ini`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
   });
+ 
   return response.data.data || [];
 };
 
 export const getAslapPenugasanDriver = async () => {
   const token = await SecureStore.getItemAsync('authToken');
   if (!token) throw new Error('No token found');
+ 
   const response = await axios.get(`${API_BASE_URL}/aslap/penugasan-driver`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
   });
+ 
   return response.data.drivers || [];
 };
 
 export const getAslapDistribusi = async () => {
   const token = await SecureStore.getItemAsync('authToken');
   if (!token) throw new Error('No token found');
+ 
   const response = await axios.get(`${API_BASE_URL}/aslap/distribusi`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+ 
+  return response.data.distribusi || [];
+};
+
+export const getAslapNotifikasiLatest = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.get(`${API_BASE_URL}/aslap/notifikasi/latest`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return response.data.distribusi || [];
+  return response.data;
+};
+
+// Notifikasi Aslap
+export const getAslapNotifikasi = async (page = 1) => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.get(`${API_BASE_URL}/aslap/notifikasi?page=${page}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const bacaNotifikasi = async (id) => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.post(`${API_BASE_URL}/aslap/notifikasi/${id}/baca`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const bacaSemuaNotifikasi = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.post(`${API_BASE_URL}/aslap/notifikasi/baca-semua`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
 };
 
 

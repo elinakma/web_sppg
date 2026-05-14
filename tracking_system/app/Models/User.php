@@ -76,11 +76,10 @@ class User extends Authenticatable
     {
         return $this->role === 'Driver';
     }
-    
 
-    public function locations()
+    public function location()
     {
-        return $this->hasMany(Location::class);
+        return $this->hasOne(Location::class);
     }
 
     public function pengiriman()

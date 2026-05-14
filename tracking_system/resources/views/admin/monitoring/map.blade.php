@@ -23,19 +23,6 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
-    .table thead th {
-        background: #f8f9fa;
-        font-weight: 600;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f2f6ff;
-        transition: 0.2s ease-in-out;
-    }
-
     .badge-driver {
         background-color: #e3f2fd;
         color: #0d6efd;
@@ -108,7 +95,7 @@
                         </a>
                     </li>
                     <li class="breadcrumb-item active fw-semibold" aria-current="page">
-                        Kelola Pengiriman
+                        Kelola Pemantauan
                     </li>
                 </ol>
             </nav>
@@ -116,18 +103,18 @@
             <hr style="margin-top: 10px; margin-bottom: 20px;">
 
             <!-- List driver -->
-            <h6 class="mb-3 fw-semibold">Daftar Driver</h6>
+            <h5 class="mb-3 fw-semibold">Daftar Driver</h5>
 
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-light">
-                        <tr class="text-center">
-                            <th width="5%">No</th>
-                            <th class="text-start">Driver</th>
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th width="60">No</th>
+                            <th>Driver</th>
                             <th>Status</th>
-                            <th width="30%">Email</th>
-                            <th width="15%">Jumlah Sekolah</th>
-                            <th width="18%">Aksi</th>
+                            <th>Email</th>
+                            <th>Jumlah Sekolah</th>
+                            <th width="220">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -140,37 +127,39 @@
                                     <span class="badge-driver">Driver Aktif</span>
                                 </td>
 
-                                <td class="text-center align-middle">
+                                <td class="text-center">
                                     @if($driver->sedang_berjalan)
-                                        <span class="badge rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                        <span class="badge status-badge d-inline-block"
                                             style="background-color:#198754;">
                                             <i class="bi bi-truck"></i> Sedang Berjalan
                                         </span>
                                     @else
-                                        <span class="badge rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
+                                        <span class="badge status-badge d-inline-block"
                                             style="background-color:#6c757d;">
                                             <i class="bi bi-pause-circle"></i> Tidak Berjalan
                                         </span>
                                     @endif
                                 </td>
 
-                                <td class="text-center align-middle">{{ $driver->email }}</td>
+                                <td class="text-center">{{ $driver->email }}</td>
 
-                                <td class="text-center align-middle">
-                                    <span class="badge bg-info">
+                                <td class="text-center">
+                                    <span class="badge status-badge d-inline-block bg-info">
                                         {{ $driver->assignedSekolah->count() }} Sekolah
                                     </span>
                                 </td>
 
-                                <td class="text-center align-middle">
-                                    <button class="btn btn-sm btn-warning action-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#assignModal"
-                                            data-driver-id="{{ $driver->id }}"
-                                            data-driver-name="{{ $driver->name }}"
-                                            data-assigned-sekolah="{{ json_encode($driver->assignedSekolah->pluck('id')->toArray()) }}">
-                                        <i class="bi bi-gear"></i> Tindak Lanjut
-                                    </button>
+                                <td class="text-center">
+                                    <div class="action-group">
+                                        <button class="soft-btn btn-next"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#assignModal"
+                                                data-driver-id="{{ $driver->id }}"
+                                                data-driver-name="{{ $driver->name }}"
+                                                data-assigned-sekolah="{{ json_encode($driver->assignedSekolah->pluck('id')->toArray()) }}">
+                                            <i class="bi bi-gear"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -187,13 +176,13 @@
 
             <!-- List pengiriman -->
             <div class="mt-3">
-                <h6 class="mb-3 fw-semibold">List Pengiriman Hari Ini</h6>
+                <h5 class="mb-3 fw-semibold">List Pengiriman Hari Ini</h5>
 
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead class="table-light">
-                            <tr class="text-center">
-                                <th width="5%">No</th>
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th width="60">No</th>
                                 <th>Driver</th>
                                 <th>Sekolah</th>
                                 <th>Tanggal</th>
@@ -211,14 +200,14 @@
                             @forelse($pengirimanHariIni as $index => $item)
                                 <tr>
                                     <td class="text-center">{{ $index + 1 }}</td>
-                                    <td>{{ $item->driverPengirim?->name ?? '-' }}</td>
+                                    <td class="text-center">{{ $item->driverPengirim?->name ?? '-' }}</td>
                                     </td>
-                                    <td>{{ $item->sekolah?->nama_sekolah ?? '-' }}</td>
-                                    <td>
-                                        {{ \Carbon\Carbon::parse($item->tanggal_harian)->format('d M Y') }} 
+                                    <td class="text-center">{{ $item->sekolah?->nama_sekolah ?? '-' }}</td>
+                                    <td class="text-center">
+                                        {{ \Carbon\Carbon::parse($item->tanggal_harian)->locale('id')->translatedFormat('d M Y') }}
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge 
+                                        <span class="badge status-badge d-inline-block 
                                             @if($item->status == 'selesai') bg-success
                                             @elseif($item->status == 'dikirim') bg-warning text-dark
                                             @else bg-primary
@@ -226,7 +215,7 @@
                                             {{ $item->status == 'draf' ? 'Draf' : ($item->status == 'dikirim' ? 'Dikirim' : 'Selesai') }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         {{ $item->waktu ? \Carbon\Carbon::parse($item->waktu)->timezone('Asia/Jakarta')->format('H:i') : '-' }}
                                     </td>
                                 </tr>
@@ -246,7 +235,7 @@
 
     <!-- Peta -->
     <div class="card driver-table-card mb-4">
-        <div class="card-header bg-gradient bg-info text-white d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff;">
             <h5 class="mb-0">
                 <i class="bi bi-truck me-2"></i>Monitoring Driver Real-time
             </h5>
@@ -255,8 +244,6 @@
 
         <div class="card-body p-4">
             <!-- MAP -->
-            <h6 class="mb-3 fw-semibold">Peta Tracking</h6>
-
             <div class="map-wrapper">
                 <div id="map"></div>
             </div>
@@ -272,24 +259,29 @@
     <!-- Modal Atur Sekolah -->
     <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                
-                <div class="modal-header bg-primary text-white rounded-top-4">
-                    <h5 class="modal-title">
-                        Atur Sekolah untuk Driver:
-                        <span id="modalDriverName" class="fw-bold">-</span>
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-gear me-2"></i>Atur Sekolah untuk
+                        <span id="modalDriverName">-</span>
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+
+                <div class="modal-divider"></div>
 
                 <form action="{{ route('admin.monitoring.assign.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="driver_id" id="modalDriverId">
 
                     <div class="modal-body">
-                        <label class="form-label fw-bold mb-3">
-                            Pilih Sekolah Tujuan Pengiriman
-                        </label>
+                        <div class="card mb-4 border-0 bg-success bg-opacity-10">
+                            <div class="card-body py-2">
+                                <h6 class="mb-0 fw-semibold text-success">
+                                    Pilih Sekolah Tujuan Pengiriman
+                                </h6>
+                            </div>
+                        </div>
 
                         <div class="row g-3">
                             @if(isset($sekolahAktif) && $sekolahAktif->isNotEmpty())
@@ -311,7 +303,7 @@
                                             </label>
                                         </div>
 
-                                        <span class="badge bg-warning text-dark d-none conflict-badge">
+                                        <span class="badge status-badge bg-warning d-none conflict-badge" style="font-size: 10px;">
                                             Sudah dipakai
                                         </span>
 
@@ -330,11 +322,12 @@
                     </div>
 
                     <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
                             Batal
                         </button>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-save me-1"></i> Simpan
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                            style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
+                            Simpan
                         </button>
                     </div>
                 </form>
@@ -433,20 +426,20 @@
                 fetch('{{ route('api.drivers.locations') }}')
                     .then(response => response.json())
                     .then(async data => {
-                        const activeDrivers = data.filter(d => d.locations.length > 0);
+                        const activeDrivers = data.filter(d => d.location);
 
                         // Update teks hanya jika ada driver aktif
                         if (activeDrivers.length > 0) {
                             const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
-                            document.getElementById('lastUpdate').textContent = `Update terakhir: ${now} WIB`;
+                            document.getElementById('lastUpdate').textContent = `Perbarui terakhir: ${now} WIB`;
                         } else {
                             document.getElementById('lastUpdate').textContent = 'Tidak ada driver aktif';
                         }
                         
                         // Loop proses ambil data setiap driver
                         for (const driver of data) {
-                                if (driver.locations.length > 0) { 
-                                    const loc = driver.locations[0]; 
+                                if (driver.location) { 
+                                    const loc = driver.location; 
                                     const lat = loc.latitude;
                                     const lng = loc.longitude;
                                     const userId = driver.id;

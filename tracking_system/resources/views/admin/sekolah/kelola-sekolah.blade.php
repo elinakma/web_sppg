@@ -15,40 +15,36 @@
                         </a>
                     </li>
                     <li class="breadcrumb-item active fw-semibold" aria-current="page">
-                        Kelola Sekolah Penerima MBG
+                        Kelola Sekolah Penerima
                     </li>
                 </ol>
             </nav>
 
             <hr style="margin-top: 10px; margin-bottom: 20px;">
 
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-                <h4 class="mb-0 fw-bold">Kelola Sekolah Penerima MBG</h4>
-
-                <div class="d-flex gap-2">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h4 class="mb-0 fw-bold">Kelola Sekolah Penerima</h4>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <!-- Search -->
-                    <form action="{{ route('admin.sekolah.index') }}" method="GET">
-                        <div class="input-group">
-                            <input type="text"
-                                name="search"
-                                class="form-control"
-                                placeholder="Cari sekolah / PIC..."
-                                value="{{ request('search') }}">
-                            <button class="btn btn-outline-secondary" type="submit">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </div>
+                    <form action="{{ route('admin.sekolah.index') }}" method="GET" class="d-flex align-items-center gap-2 filter-box">
+                        <input type="text"
+                            name="search"
+                            class="form-control form-control-sm rounded-pill filter-input"
+                            placeholder="Cari sekolah / PIC..."
+                            value="{{ request('search') }}">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" type="submit">
+                            <i class="bi bi-search me-1"></i> Cari
+                        </button>
                     </form>
 
-                    <!-- Tambah -->
+                    <!-- Tombol Tambah -->
                     <button type="button"
-                        class="btn"
-                        style="background-color: #133b84; color: white;"
+                        class="btn btn-primary rounded-pill px-3 shadow-sm"
+                        style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;"
                         data-bs-toggle="modal"
                         data-bs-target="#tambahSekolahModal">
-                        <i class="bi bi-plus-circle me-1"></i> Tambah Sekolah
+                        <i class="bi bi-plus-circle me-2"></i> Tambah Sekolah
                     </button>
-
                 </div>
             </div>
 
@@ -57,11 +53,11 @@
                     <thead class="table-light text-center">
                         <tr>
                             <th width="60">No</th>
-                            <th>{!! sortLink('Nama Sekolah', 'nama_sekolah') !!}</th>
-                            <th>{!! sortLink('PIC', 'pic') !!}</th>
-                            <th>{!! sortLink('Porsi Kecil', 'porsi_kecil_default') !!}</th>
-                            <th>{!! sortLink('Porsi Besar', 'porsi_besar_default') !!}</th>
-                            <th>{!! sortLink('Status', 'status') !!}</th>
+                            <th>Nama Sekolah</th>
+                            <th>PIC</th>
+                            <th>Porsi Kecil</th>
+                            <th>Porsi Besar</th>
+                            <th>Status</th>
                             <th width="200">Aksi</th>
                         </tr>
                     </thead>
@@ -76,36 +72,43 @@
                             <td class="text-center">{{ $s->porsi_kecil_default }}</td>
                             <td class="text-center">{{ $s->porsi_besar_default }}</td>
                             <td class="text-center">
-                                <span class="badge px-3 py-2 {{ $s->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
+                                <span class="badge status-badge d-inline-block {{ $s->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ $s->status }}
                                 </span>
                             </td>
-                            <td class="text-center d-flex justify-content-center flex-wrap gap-1">
-                                <button type="button"
-                                    class="btn btn-sm btn-warning action-btn edit-btn"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editSekolahModal"
-                                    data-id="{{ $s->id }}"
-                                    data-nama="{{ $s->nama_sekolah }}"
-                                    data-pic="{{ $s->pic }}"
-                                    data-kecil="{{ $s->porsi_kecil_default }}"
-                                    data-besar="{{ $s->porsi_besar_default }}"
-                                    data-status="{{ $s->status }}">
-                                    <i class="bi bi-pencil-square"></i> Edit
-                                </button>
+                            <td class="text-center">
+                                <div class="action-group">
+                                    <!-- Edit -->
+                                    <button type="button"
+                                        class="soft-btn btn-detail edit-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editSekolahModal"
+                                        data-id="{{ $s->id }}"
+                                        data-nama="{{ $s->nama_sekolah }}"
+                                        data-pic="{{ $s->pic }}"
+                                        data-kecil="{{ $s->porsi_kecil_default }}"
+                                        data-besar="{{ $s->porsi_besar_default }}"
+                                        data-status="{{ $s->status }}"
+                                        data-title="Edit">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
 
-                                <button type="button"
-                                    class="btn btn-sm btn-danger action-btn btn-delete"
-                                    data-id="{{ $s->id }}"
-                                    data-nama="{{ $s->nama_sekolah }}">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
+                                    <!-- Hapus -->
+                                    <button type="button"
+                                        class="soft-btn btn-delete btn-delete-trigger"
+                                        data-id="{{ $s->id }}"
+                                        data-title="Hapus"
+                                        data-nama="{{ $s->nama_sekolah }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
 
-                                <form id="delete-form-{{ $s->id }}"
-                                    action="{{ route('admin.sekolah.destroy', $s) }}"
-                                    method="POST" class="d-none">
-                                    @csrf @method('DELETE')
-                                </form>
+                                    <form id="delete-form-{{ $s->id }}"
+                                        action="{{ route('admin.sekolah.destroy', $s) }}"
+                                        method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -118,53 +121,73 @@
                     </tbody>
                 </table>
 
-                <!-- Modal Edit per sekolah -->
-                <div class="modal fade" id="editSekolahModal" tabindex="-1">
+                <!-- Modal Edit Sekolah -->
+                <div class="modal fade" id="editSekolahModal" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                         <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title fw-semibold">Edit Sekolah</h5>
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title fw-semibold">
+                                    <i class="bi bi-building me-1"></i>Edit Sekolah Penerima
+                                </h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
 
+                            <div class="modal-divider"></div>
+                            
                             <form id="editForm" method="POST">
-                                @csrf @method('PUT')
+                                @csrf
+                                @method('PUT')
 
                                 <div class="modal-body">
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Nama Sekolah</label>
-                                            <input type="text" name="nama_sekolah" class="form-control" required>
+                                            <input type="text" name="nama_sekolah"
+                                                class="form-control shadow-sm @error('nama_sekolah') is-invalid @enderror"
+                                                required>
+                                            @error('nama_sekolah') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">PIC</label>
-                                            <input type="text" name="pic" class="form-control" required>
+                                            <input type="text" name="pic"
+                                                class="form-control shadow-sm @error('pic') is-invalid @enderror"
+                                                required>
+                                            @error('pic') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Porsi Kecil</label>
-                                            <input type="number" name="porsi_kecil_default" class="form-control">
+                                            <input type="number" name="porsi_kecil_default" min="0"
+                                                class="form-control shadow-sm @error('porsi_kecil_default') is-invalid @enderror">
+                                            @error('porsi_kecil_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Porsi Besar</label>
-                                            <input type="number" name="porsi_besar_default" class="form-control">
+                                            <input type="number" name="porsi_besar_default" min="0"
+                                                class="form-control shadow-sm @error('porsi_besar_default') is-invalid @enderror">
+                                            @error('porsi_besar_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
 
                                         <div class="col-md-12">
                                             <label class="form-label">Status</label>
-                                            <select name="status" class="form-select">
+                                            <select name="status"
+                                                class="form-select shadow-sm @error('status') is-invalid @enderror">
                                                 <option value="Aktif">Aktif</option>
                                                 <option value="Nonaktif">Nonaktif</option>
                                             </select>
+                                            @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                                <div class="modal-footer border-0">
+                                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                                        Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                                        style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
                                         Simpan
                                     </button>
                                 </div>
@@ -173,14 +196,13 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex justify-content-between align-items-center mt-3">
+           <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small">
-                    Menampilkan
-                    <strong>{{ $sekolah->firstItem() }}</strong>
+                    Menampilkan <span class="badge bg-primary">{{ $sekolah->firstItem() }}</span>
                     –
-                    <strong>{{ $sekolah->lastItem() }}</strong>
+                    <span class="badge bg-primary">{{ $sekolah->lastItem() }}</span>
                     dari
-                    <strong>{{ $sekolah->total() }}</strong>
+                    <span class="badge bg-secondary">{{ $sekolah->total() }}</span>
                     sekolah
                 </div>
 
@@ -209,10 +231,14 @@
     <div class="modal fade" id="tambahSekolahModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Tambah Sekolah Penerima MBG</h5>
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-building me-1"></i>Tambah Sekolah Penerima
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+
+                <div class="modal-divider"></div>
 
                 <form action="{{ route('admin.sekolah.store') }}" method="POST">
                     @csrf
@@ -221,7 +247,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Nama Sekolah</label>
                                 <input type="text" name="nama_sekolah"
-                                    class="form-control @error('nama_sekolah') is-invalid @enderror"
+                                    class="form-control shadow-sm @error('nama_sekolah') is-invalid @enderror"
                                     value="{{ old('nama_sekolah') }}" required>
                                 @error('nama_sekolah')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -231,7 +257,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">PIC</label>
                                 <input type="text" name="pic"
-                                    class="form-control @error('pic') is-invalid @enderror"
+                                    class="form-control shadow-sm @error('pic') is-invalid @enderror"
                                     value="{{ old('pic') }}" required>
                                 @error('pic')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -239,24 +265,20 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">
-                                    Porsi Kecil <span class="text-muted">(Opsional)</span>
-                                </label>
+                                <label class="form-label">Porsi Kecil <span class="text-muted">(Opsional)</span></label>
                                 <input type="number" name="porsi_kecil_default" min="0"
-                                    class="form-control @error('porsi_kecil_default') is-invalid @enderror"
-                                    value="{{ old('porsi_kecil_default') }}">
+                                    class="form-control shadow-sm @error('porsi_kecil_default') is-invalid @enderror"
+                                    value="{{ old('porsi_kecil_default') }}" placeholder="-- Contoh : 2000 --">
                                 @error('porsi_kecil_default')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">
-                                    Porsi Besar <span class="text-muted">(Opsional)</span>
-                                </label>
+                                <label class="form-label">Porsi Besar <span class="text-muted">(Opsional)</span></label>
                                 <input type="number" name="porsi_besar_default" min="0"
-                                    class="form-control @error('porsi_besar_default') is-invalid @enderror"
-                                    value="{{ old('porsi_besar_default') }}">
+                                    class="form-control shadow-sm @error('porsi_besar_default') is-invalid @enderror"
+                                    value="{{ old('porsi_besar_default') }}" placeholder="-- Contoh : 5000 --">
                                 @error('porsi_besar_default')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -265,7 +287,7 @@
                             <div class="col-md-12">
                                 <label class="form-label">Status</label>
                                 <select name="status"
-                                    class="form-select @error('status') is-invalid @enderror" required>
+                                    class="form-select shadow-sm @error('status') is-invalid @enderror" required>
                                     <option value="">Pilih Status</option>
                                     <option value="Aktif">Aktif</option>
                                     <option value="Nonaktif">Nonaktif</option>
@@ -277,11 +299,12 @@
                         </div>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
                             Batal
                         </button>
-                        <button type="submit" class="btn" style="background-color:#133b84;color:white">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                            style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
                             Simpan
                         </button>
                     </div>
@@ -321,7 +344,7 @@
         <div class="success-icon">
             <i class="bi bi-check-lg"></i>
         </div>
-        <h5 class="fw-bold mt-3">Success</h5>
+        <h5 class="fw-bold mt-3">Sukses</h5>
         <p class="text-muted mb-0">
             {{ session('success') }}
         </p>

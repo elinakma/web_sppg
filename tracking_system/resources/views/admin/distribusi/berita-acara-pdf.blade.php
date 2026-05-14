@@ -106,7 +106,7 @@
                     (____________________)
                 </td>
                 <td width="50%" valign="top">
-                    <strong>Diterima oleh :</strong> {{ $sekolah->pic }}<br><br>
+                    <strong>Diterima oleh :</strong><br><br>
                     Nomor Telepon : {{ $sekolah->telepon ?? '-' }}<br><br><br>
                     (____________________)
                 </td>
@@ -153,7 +153,7 @@
                     (____________________)
                 </td>
                 <td width="50%" valign="top">
-                    <strong>Diterima oleh :</strong> {{ $sekolah->pic }}<br><br>
+                    <strong>Diterima oleh :</strong><br><br>
                     Nomor Telepon : {{ $sekolah->telepon ?? '-' }}<br><br><br>
                     (____________________)
                 </td>

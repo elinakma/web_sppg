@@ -610,14 +610,14 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
 
             if (data.success) {
-                showToast('✅ Harga berhasil disimpan', 'success');
+                showToast('Harga berhasil disimpan', 'success');
             } else {
-                showToast('❌ Gagal simpan data', 'danger');
+                showToast('Gagal simpan data', 'danger');
             }
 
         })
         .catch(() => {
-            showToast('❌ Terjadi kesalahan', 'danger');
+            showToast('Terjadi kesalahan', 'danger');
         });
     };
 

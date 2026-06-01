@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as SplashScreen from 'expo-splash-screen';
 
-import SplashScreen from './screens/SplashScreen';
+import SplashScreenComponent from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import DistribusiScreen from './screens/MainTabs/DistribusiScreen';
 import ProfilScreen from './screens/MainTabs/ProfilScreen';
 import DashboardScreen from './screens/MainTabs/DashboardScreen';
 import AslapTabs from './screens/Aslap/AslapTabs';
-import AslapNotifikasiScreen from './screens/Aslap/AslapNotifikasiScreen';
+
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -23,22 +25,20 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
-          } else if (route.name === 'Tracking') {
-            iconName = focused ? 'map-marker-radius' : 'map-marker';
-          } else if (route.name === 'Distribusi') {
-            iconName = focused ? 'truck-delivery' : 'truck-delivery-outline';
-          } else if (route.name === 'Profil') {
-            iconName = focused ? 'account' : 'account-outline';
-          }
-
+          if (route.name === 'Dashboard') iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
+          else if (route.name === 'Distribusi') iconName = focused ? 'truck-delivery' : 'truck-delivery-outline';
+          else if (route.name === 'Profil') iconName = focused ? 'account' : 'account-outline';
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#0d6efd',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
+
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 25,
+          paddingTop: 8,
+        },
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
@@ -49,22 +49,18 @@ function MainTabs() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Sembunyikan native splash begitu JS sudah siap
+    SplashScreen.hideAsync();
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Splash" component={SplashScreenComponent} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="AslapMain" component={AslapTabs} />
-        <Stack.Screen
-          name="AslapNotifikasi"
-          component={AslapNotifikasiScreen}
-          options={{
-            headerShown: true,
-            title: 'Notifikasi',
-            headerBackTitle: 'Kembali',
-          }}
-        />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>

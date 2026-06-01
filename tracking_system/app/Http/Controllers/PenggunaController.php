@@ -115,6 +115,11 @@ class PenggunaController extends Controller
             }
         }
 
+        // Jika driver dinonaktifkan → lepaskan sekolah di pengiriman & distribusi
+        if ($user->role === 'Driver' && $request->status === 'Nonaktif') {
+            app(MapController::class)->releaseDriverAssignments($user->id);
+        }
+
         // Update status
         $user->update(['status' => $request->status]);
 
@@ -139,6 +144,10 @@ class PenggunaController extends Controller
 
         if ($pengguna->role === 'Admin' && User::where('role', 'Admin')->count() <= 1) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus admin terakhir.');
+        }
+
+        if ($pengguna->role === 'Driver') {
+            app(MapController::class)->releaseDriverAssignments($pengguna->id);
         }
 
         $pengguna->delete();

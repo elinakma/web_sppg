@@ -11,7 +11,6 @@ class Distribusi extends Model
     protected $fillable = [
         'tanggal_awal',
         'tanggal_akhir',
-        'status'
     ];
 
     protected $casts = [

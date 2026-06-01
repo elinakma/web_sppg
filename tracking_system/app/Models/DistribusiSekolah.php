@@ -18,6 +18,8 @@ class DistribusiSekolah extends Model
         'menu_basah',
         'total_penerima',
         'pagu_harian_sekolah',
+        'pagu_porsi_kecil',
+        'pagu_porsi_besar',
         'status',
         'pengirim',
         'waktu'

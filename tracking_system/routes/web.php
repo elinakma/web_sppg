@@ -96,8 +96,6 @@ Route::middleware('auth', 'verified')->group(function () {
             Route::get('/dropdown',      [NotifikasiController::class, 'dropdown'])->name('dropdown');
             Route::post('/{notifikasi}/baca',  [NotifikasiController::class, 'baca'])->name('baca');
             Route::post('/baca-semua',   [NotifikasiController::class, 'bacaSemua'])->name('baca-semua');
-            Route::delete('/{notifikasi}',     [NotifikasiController::class, 'destroy'])->name('destroy');
-            Route::delete('/hapus-semua', [NotifikasiController::class, 'hapusSemua'])->name('hapus-semua');
         });
     });
 

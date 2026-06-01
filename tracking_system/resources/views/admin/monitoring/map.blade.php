@@ -4,78 +4,103 @@
 
 @section('styles')
     <style>
-    .map-wrapper {
-        position: relative;
-        height: 500px;
-        width: 100%;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    #map {
-        height: 100%;
-        width: 100%;
-    }
-
-    .driver-table-card {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-
-    .badge-driver {
-        background-color: #e3f2fd;
-        color: #0d6efd;
-        font-weight: 500;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-    }
-
-    .card-header {
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
-
-    .sekolah-card {
-        border: 1px solid #e9ecef;
-        border-radius: 14px;
-        padding: 14px 16px;
-        transition: all 0.25s ease;
-        cursor: pointer;
-        background: #fff;
-        position: relative;
-    }
-
-    .sekolah-card:hover {
-        border-color: #0d6efd;
-        box-shadow: 0 6px 16px rgba(0,0,0,0.05);
-    }
-
-    .sekolah-card.checked {
-        border: 2px solid #0d6efd;
-        background: #f4f9ff;
-    }
-
-    .sekolah-card.disabled {
-        background: #f8f9fa;
-        border: 1px dashed #dee2e6;
-        cursor: not-allowed;
-    }
-
-    .sekolah-card.disabled label {
-        color: #adb5bd;
-    }
-
-    .sekolah-checkbox {
-        transform: scale(1.2);
-        cursor: pointer;
-    }
-
-    .conflict-badge {
-        font-size: 11px;
-    }
-    </style>
+.map-wrapper {
+    position: relative;
+    height: 520px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+ 
+#map {
+    height: 100%;
+    width: 100%;
+}
+ 
+.driver-table-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+ 
+.badge-driver {
+    background-color: #e3f2fd;
+    color: #0d6efd;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+ 
+.sekolah-card {
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    background: #fff;
+    position: relative;
+}
+ 
+.sekolah-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+}
+ 
+.sekolah-card.checked {
+    border: 2px solid #0d6efd;
+    background: #f4f9ff;
+}
+ 
+.sekolah-card.disabled {
+    background: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    cursor: not-allowed;
+}
+ 
+.sekolah-card.disabled label {
+    color: #adb5bd;
+}
+ 
+.sekolah-checkbox {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+ 
+.conflict-badge {
+    font-size: 11px;
+}
+ 
+/* Legend */
+.map-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+ 
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+}
+ 
+.legend-line {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+}
+ 
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.2);
+}
+</style>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -233,22 +258,33 @@
         </div>
     </div>
 
-    <!-- Peta -->
+    <!-- Peta Monitoring -->
     <div class="card driver-table-card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff;">
-            <h5 class="mb-0">
-                <i class="bi bi-truck me-2"></i>Monitoring Driver Real-time
-            </h5>
+        <div class="card-header d-flex justify-content-between align-items-center"
+             style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff;">
+            <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Pemantauan Perjalanan</h5>
             <span class="small" id="lastUpdate">Menunggu data...</span>
         </div>
-
-        <div class="card-body p-4">
+ 
+        <div class="card-body p-3 pb-2">
+            <!-- Legend -->
+            <div class="map-legend mb-2">
+                <div class="legend-item">
+                    <div class="legend-line" style="background:#2563eb;"></div>
+                    <span>Jalur Perjalanan</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#f59e0b;"></div>
+                    <span>Posisi driver</span>
+                </div>
+            </div>
+ 
             <!-- MAP -->
             <div class="map-wrapper">
                 <div id="map"></div>
             </div>
         </div>
-
+ 
         <div class="card-footer text-end">
             <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
                 <i class="bi bi-arrow-clockwise me-1"></i> Refresh
@@ -284,39 +320,42 @@
                         </div>
 
                         <div class="row g-3">
-                            @if(isset($sekolahAktif) && $sekolahAktif->isNotEmpty())
-                            @foreach($sekolahAktif as $sekolah)
-                            <div class="col-md-6">
-                                <div class="sekolah-card">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        
-                                        <div class="form-check m-0 flex-grow-1">
-                                            <input class="form-check-input me-3 sekolah-checkbox"
-                                                type="checkbox"
-                                                name="sekolah_ids[]"
-                                                value="{{ $sekolah->id }}"
-                                                id="sekolah{{ $sekolah->id }}">
+                            @if(isset($sekolahSemua) && $sekolahSemua->isNotEmpty())
+                                @foreach($sekolahSemua as $sekolah)
+                                <div class="col-md-6">
+                                    <div class="sekolah-card">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            
+                                            <div class="form-check m-0 flex-grow-1">
+                                                <input class="form-check-input me-3 sekolah-checkbox"
+                                                    type="checkbox"
+                                                    name="sekolah_ids[]"
+                                                    value="{{ $sekolah->id }}"
+                                                    id="sekolah{{ $sekolah->id }}">
 
-                                            <label class="form-check-label fw-semibold"
-                                                for="sekolah{{ $sekolah->id }}">
-                                                {{ $sekolah->nama_sekolah }}
-                                            </label>
+                                                <label class="form-check-label fw-semibold"
+                                                    for="sekolah{{ $sekolah->id }}">
+                                                    {{ $sekolah->nama_sekolah }}
+                                                    @if($sekolah->status !== 'Aktif')
+                                                        <span class="badge bg-secondary ms-2">Nonaktif</span>
+                                                    @endif
+                                                </label>
+                                            </div>
+
+                                            <span class="badge status-badge bg-warning d-none conflict-badge" style="font-size: 10px;">
+                                                Sudah dipakai
+                                            </span>
+
                                         </div>
-
-                                        <span class="badge status-badge bg-warning d-none conflict-badge" style="font-size: 10px;">
-                                            Sudah dipakai
-                                        </span>
-
                                     </div>
                                 </div>
-                            </div>
-                            @endforeach
+                                @endforeach
                             @else
-                            <div class="col-12">
-                                <div class="alert alert-light border text-muted text-center">
-                                    Tidak ada sekolah aktif.
+                                <div class="col-12">
+                                    <div class="alert alert-light border text-muted text-center">
+                                        Tidak ada sekolah tersedia.
+                                    </div>
                                 </div>
-                            </div>
                             @endif
                         </div>
                     </div>
@@ -338,192 +377,330 @@
 @endsection
 
 @section('scripts')
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+ 
+<script>
+let map;
+ 
+const driverEndMarker   = {}; // marker posisi terkini (kuning)
+const driverStartMarker = {}; // marker titik awal (hijau)
+const driverPolylines   = {}; // garis biru jalur (road route)
+const driverPoints      = {}; // orange checkpoint dots (raw GPS)
+ 
+let hasInitialFit = false;
+let addressCache  = {};
+const routeCache  = {};
 
-    <script>
-        let map;
-        let markers = {};
-        let hasInitialFit = false;
-        let addressCache = {};
+function iconGreen() {
+    return L.icon({
+        iconUrl   : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize  : [25, 41],
+        iconAnchor: [12, 41],
+    });
+}
+ 
+function iconYellow() {
+    return L.icon({
+        iconUrl   : 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+        shadowUrl : 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize  : [25, 41],
+        iconAnchor: [12, 41],
+    });
+}
 
-        document.addEventListener('DOMContentLoaded', function () {
-            map = L.map('map').setView([-7.629, 111.523], 12);
+document.addEventListener('DOMContentLoaded', function () {
+    map = L.map('map').setView([-7.629, 111.523], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom     : 19,
+    }).addTo(map);
+ 
+    updateAll();
+    setInterval(updateAll, 10000);
+});
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19,
-            }).addTo(map);
+async function updateAll() {
+    try {
+        const res     = await fetch('{{ route('api.drivers.locations') }}');
+        const drivers = await res.json();
+ 
+        const active = drivers.filter(d => d.location && d.is_online);
+        if (active.length > 0) {
+            const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+            document.getElementById('lastUpdate').textContent = `Diperbarui: ${now} WIB`;
+        } else {
+            document.getElementById('lastUpdate').textContent = 'Tidak ada driver aktif';
+        }
+ 
+        for (const driver of drivers) {
+            await updateTrackingLayer(driver);
+        }
+ 
+        if (!hasInitialFit && Object.keys(driverEndMarker).length > 0) {
+            const all = [
+                ...Object.values(driverEndMarker),
+                ...Object.values(driverStartMarker),
+            ].filter(Boolean);
+            map.fitBounds(L.featureGroup(all).getBounds(), { padding: [50, 50] });
+            hasInitialFit = true;
+        }
+ 
+    } catch (err) {
+        console.error('[Monitoring] Gagal update:', err);
+    }
+}
 
-            // Fungsi reverse geocoding ke alamat
-            async function getAddress(lat, lng) {
-                const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
-                if (addressCache[cacheKey]) {
-                    return addressCache[cacheKey];
-                }
+async function buildRoadRoute(rawCoords) {
+    if (rawCoords.length < 2) return rawCoords;
+ 
+    // Signature untuk cache: awal|akhir|jumlah titik
+    const f   = rawCoords[0];
+    const l   = rawCoords[rawCoords.length - 1];
+    const sig = `${f[0].toFixed(5)},${f[1].toFixed(5)}|${l[0].toFixed(5)},${l[1].toFixed(5)}|${rawCoords.length}`;
+    if (routeCache[sig]) return routeCache[sig];
+ 
+    // Sampling max 25 waypoint (temenmu sampling max 50 ke ORS)
+    const MAX_WP  = 25;
+    let waypoints = rawCoords;
+    if (waypoints.length > MAX_WP) {
+        const step    = Math.ceil(waypoints.length / MAX_WP);
+        const sampled = [];
+        for (let i = 0; i < waypoints.length; i += step) sampled.push(waypoints[i]);
+        if (sampled[sampled.length - 1] !== waypoints[waypoints.length - 1]) {
+            sampled.push(waypoints[waypoints.length - 1]);
+        }
+        waypoints = sampled;
+    }
+ 
+    try {
+        // OSRM format: longitude,latitude dipisah ;
+        const coordStr = waypoints.map(c => `${c[1]},${c[0]}`).join(';');
+        const url      = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
+ 
+        const res  = await fetch(url, { signal: AbortSignal.timeout(7000) });
+        const data = await res.json();
+ 
+        if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length) {
+            // Konversi [lng, lat] → [lat, lng] untuk Leaflet
+            const road = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+            routeCache[sig] = road;
+            return road;
+        }
+    } catch (_) {}
+ 
+    // Fallback: raw GPS coords jika OSRM gagal
+    return rawCoords;
+}
 
-                try {
-                    const response = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`,
-                        {
-                            headers: {
-                                'Accept-Language': 'id'
-                            }
-                        }
-                    );
-                    const data = await response.json();
-
-                    if (data && data.address) {
-                        const address = data.address;
-                        let parts = [];
-
-                        // Jalan + nomor rumah
-                        if (address.road || address.pedestrian || address.path || address.residential) {
-                            let road = address.road || address.pedestrian || address.path || address.residential;
-                            if (address.house_number) road += ` No. ${address.house_number}`;
-                            parts.push(road);
-                        }
-
-                        // Desa/kelurahan/kampung
-                        if (address.village || address.hamlet || address.suburb || address.neighbourhood) {
-                            parts.push(address.village || address.hamlet || address.suburb || address.neighbourhood);
-                        }
-
-                        // Kecamatan
-                        if (address.city_district || address.district) {
-                            parts.push(address.city_district || address.district);
-                        }
-
-                        // Kota/kabupaten
-                        if (address.city || address.town || address.county) {
-                            parts.push(address.city || address.town || address.county);
-                        }
-
-                        // Provinsi
-                        if (address.state || address.region) {
-                            parts.push(address.state || address.region);
-                        }
-
-                        // Kode pos kalau ada
-                        if (address.postcode) {
-                            parts.push(`${address.postcode}`);
-                        }
-
-                        let formatted = parts.filter(Boolean).join(', ');
-                        if (!formatted) formatted = data.display_name || 'Lokasi tidak teridentifikasi';
-
-                        addressCache[cacheKey] = formatted;
-                        return formatted;
-                    }
-                } catch (err) {
-                    console.error('Gagal reverse geocode:', err);
-                }
-
-                return 'Lokasi tidak diketahui';
+async function updateTrackingLayer(driver) {
+    const uid = driver.id;
+ 
+    // Driver offline → hapus semua layer (sama seperti temenmu)
+    if (!driver.is_online) {
+        if (driverEndMarker[uid])   { map.removeLayer(driverEndMarker[uid]);   delete driverEndMarker[uid]; }
+        if (driverStartMarker[uid]) { map.removeLayer(driverStartMarker[uid]); delete driverStartMarker[uid]; }
+        if (driverPolylines[uid])   { map.removeLayer(driverPolylines[uid]);   delete driverPolylines[uid]; }
+        if (driverPoints[uid])      { map.removeLayer(driverPoints[uid]);       delete driverPoints[uid]; }
+        return;
+    }
+ 
+    try {
+        const res    = await fetch(`/api/drivers/${uid}/history`);
+        const points = await res.json();
+ 
+        if (!points || points.length < 1) return;
+ 
+        points.sort((a, b) => new Date(a.tracked_at) - new Date(b.tracked_at));
+ 
+        const rawCoords = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
+        const lastIdx   = rawCoords.length - 1;
+ 
+        // Rute jalan yang sudah di-snap ke jalan asli dari OSRM (biru) atau fallback ke raw GPS (tanpa snap)
+        let roadCoords = rawCoords;
+        if (rawCoords.length >= 2) {
+            roadCoords = await buildRoadRoute(rawCoords);
+        }
+ 
+        // Polyline jalur perjalanan (biru)
+        if (roadCoords.length >= 2) {
+            if (driverPolylines[uid]) {
+                driverPolylines[uid].setLatLngs(roadCoords);
+            } else {
+                driverPolylines[uid] = L.polyline(roadCoords, {
+                    color       : '#2563eb',
+                    weight      : 5,
+                    opacity     : 0.9,
+                    lineJoin    : 'round',
+                    lineCap     : 'round',
+                    smoothFactor: 1,
+                }).addTo(map);
             }
-
-            // Fungsi untuk fetch & update lokasi
-            function updateLocations() {
-                fetch('{{ route('api.drivers.locations') }}')
-                    .then(response => response.json())
-                    .then(async data => {
-                        const activeDrivers = data.filter(d => d.location);
-
-                        // Update teks hanya jika ada driver aktif
-                        if (activeDrivers.length > 0) {
-                            const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
-                            document.getElementById('lastUpdate').textContent = `Perbarui terakhir: ${now} WIB`;
-                        } else {
-                            document.getElementById('lastUpdate').textContent = 'Tidak ada driver aktif';
-                        }
-                        
-                        // Loop proses ambil data setiap driver
-                        for (const driver of data) {
-                                if (driver.location) { 
-                                    const loc = driver.location; 
-                                    const lat = loc.latitude;
-                                    const lng = loc.longitude;
-                                    const userId = driver.id;
-                                    const address = await getAddress(lat, lng);
-
-                                    if (markers[userId]) {
-                                        markers[userId].setLatLng([lat, lng]);
-                                        markers[userId].setPopupContent(`
-                                            <b>Driver: ${driver.name}</b><br>
-                                            Email: ${driver.email}<br>
-                                            Alamat: ${address}<br>
-                                            Diperbarui terakhir: ${new Date(loc.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB<br>
-                                        `);
-                                    } else {
-                                        const marker = L.marker([lat, lng]).addTo(map);
-                                        marker.bindPopup(`
-                                            <b>Driver: ${driver.name}</b><br>
-                                            Email: ${driver.email}<br>
-                                            Alamat: ${address}<br>
-                                            Diperbarui terakhir: ${new Date(loc.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB<br>
-                                        `);
-                                        markers[userId] = marker;
-                                    }
-                                }
-                        }
-                        if (!hasInitialFit && Object.keys(markers).length > 0) {
-                            const group = L.featureGroup(Object.values(markers));
-                            map.fitBounds(group.getBounds(), { padding: [50, 50] });
-                            hasInitialFit = true; 
-                        }
-                    })
-                    .catch(error => console.error('Gagal fetch lokasi:', error));
-            }
-
-            // Jalankan pertama kali
-            updateLocations();
-
-            // Refresh otomatis setiap .. detik
-            setInterval(updateLocations, 10000);
-        });
-
-
-        // Modal assign sekolah
-        const assignedSekolah = @json($assignedSekolah);
-        const allAssigned = @json($allAssignedSekolah);
-
-        document.querySelectorAll('[data-bs-target="#assignModal"]').forEach(btn => {
-            btn.addEventListener('click', function () {
-
-                const driverId = this.getAttribute('data-driver-id');
-                const driverName = this.getAttribute('data-driver-name');
-
-                document.getElementById('modalDriverId').value = driverId;
-                document.getElementById('modalDriverName').textContent = driverName;
-
-                const driverAssigned = assignedSekolah[driverId] || [];
-
-                document.querySelectorAll('.sekolah-checkbox').forEach(cb => {
-
-                    const sekolahId = parseInt(cb.value);
-                    const card = cb.closest('.sekolah-card');
-                    const badge = card.querySelector('.conflict-badge');
-
-                    cb.checked = false;
-                    cb.disabled = false;
-
-                    card.classList.remove('checked', 'disabled');
-                    badge.classList.add('d-none');
-
-                    // Milik driver ini
-                    if (driverAssigned.includes(sekolahId)) {
-                        cb.checked = true;
-                        card.classList.add('checked');
-                    }
-
-                    // Milik driver lain
-                    else if (allAssigned.includes(sekolahId)) {
-                        cb.disabled = true;
-                        card.classList.add('disabled');
-                        badge.classList.remove('d-none');
-                    }
-
-                });
+        }
+ 
+        // Checkpoint dots untuk titik raw GPS (orange)
+        if (!driverPoints[uid]) {
+            driverPoints[uid] = L.layerGroup().addTo(map);
+        }
+        driverPoints[uid].clearLayers();
+ 
+        rawCoords.forEach((c, idx) => {
+            if (idx === 0 || idx === lastIdx) return;
+ 
+            const pt    = points[idx];
+            const popId = `chk-${uid}-${idx}`;
+ 
+            const dot = L.circleMarker(c, {
+                radius     : 4,
+                weight     : 1.5,
+                color      : '#ff7a00',
+                fillColor  : '#ff7a00',
+                fillOpacity: 0.85,
             });
+ 
+            dot.bindPopup(`
+                <div style="font-size:12px;min-width:170px">
+                    <b>📍 Checkpoint #${idx}</b><br>
+                    <span style="color:#555">${pt.tracked_at ?? '-'}</span><br>
+                    <span id="${popId}">Klik untuk lihat alamat...</span>
+                </div>
+            `);
+ 
+            dot.on('popupopen', async () => {
+                const el = document.getElementById(popId);
+                if (!el || el.dataset.loaded) return;
+                el.dataset.loaded = '1';
+                el.textContent    = 'Memuat alamat...';
+                const addr = await getAddress(c[0], c[1]);
+                const el2  = document.getElementById(popId);
+                if (el2) el2.textContent = addr;
+            });
+ 
+            dot.addTo(driverPoints[uid]);
         });
+ 
+        // Marker titik awal - hijau
+        if (!driverStartMarker[uid]) {
+            driverStartMarker[uid] = L.marker(rawCoords[0], { icon: iconGreen() })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="font-size:12px">
+                        <b>📍 Titik Awal</b><br>
+                        <span style="color:#555">${points[0].tracked_at ?? '-'}</span>
+                    </div>
+                `);
+        } else {
+            driverStartMarker[uid].setLatLng(rawCoords[0]);
+        }
+ 
+        // Marker posisi sekarang - kuning
+        if (!driver.location) return;
+ 
+        const loc   = driver.location;
+        const lat   = parseFloat(loc.latitude);
+        const lng   = parseFloat(loc.longitude);
+        const stats = driver.tracking_stats || {};
+ 
+        if (driverEndMarker[uid]) {
+            driverEndMarker[uid].setLatLng([lat, lng]);
+            driverEndMarker[uid].setPopupContent(buildPopup(driver, stats, loc.created_at, 'Memuat alamat...'));
+        } else {
+            driverEndMarker[uid] = L.marker([lat, lng], { icon: iconYellow() })
+                .addTo(map)
+                .bindPopup(buildPopup(driver, stats, loc.created_at, 'Memuat alamat...'));
+        }
+ 
+        const address = await getAddress(lat, lng);
+        if (driverEndMarker[uid]) {
+            driverEndMarker[uid].setPopupContent(buildPopup(driver, stats, loc.created_at, address));
+        }
+ 
+    } catch (_) {}
+}
+
+async function getAddress(lat, lng) {
+    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (addressCache[key]) return addressCache[key];
+ 
+    try {
+        const res  = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'id' } }
+        );
+        const data = await res.json();
+        if (data?.display_name) {
+            addressCache[key] = data.display_name;
+            return data.display_name;
+        }
+    } catch (_) {}
+ 
+    return 'Lokasi tidak diketahui';
+}
+
+function buildPopup(driver, stats, lastUpdated, address) {
+    const updatedStr = new Date(lastUpdated)
+        .toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+ 
+    return `
+        <div style="min-width:220px;font-size:13px;line-height:1.6">
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px">
+                🚚 ${driver.name}
+            </div>
+            <div style="color:#555;margin-bottom:6px">${driver.email}</div>
+            <hr style="margin:6px 0">
+            <div>📍 <b>Alamat:</b><br><span style="color:#374151">${address}</span></div>
+            <hr style="margin:6px 0">
+            <div>📌 Titik tracking: ${stats.point_count ?? '-'}</div>
+            <div>🛣️ Total jarak: ${stats.total_km ?? '-'} km</div>
+            <hr style="margin:6px 0">
+            <div style="color:#888;font-size:11px">⏱ ${updatedStr} WIB</div>
+        </div>
+    `;
+}
+
+const assignedSekolahRaw = @json($assignedSekolah);
+const assignedSekolah = {};
+
+// Konversi key dan value assignedSekolah menjadi integer
+Object.keys(assignedSekolahRaw).forEach(driverId => {
+    assignedSekolah[driverId] = assignedSekolahRaw[driverId].map(id => parseInt(id));
+});
+
+// Konversi seluruh allAssigned menjadi array of integer
+const allAssigned = (@json($allAssignedSekolah) || []).map(id => parseInt(id));
+ 
+document.querySelectorAll('[data-bs-target="#assignModal"]').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const driverId   = parseInt(this.getAttribute('data-driver-id')); // Konversi ke Int
+        const driverName = this.getAttribute('data-driver-name');
+ 
+        document.getElementById('modalDriverId').value         = driverId;
+        document.getElementById('modalDriverName').textContent = driverName;
+ 
+        const driverAssigned = assignedSekolah[driverId] || [];
+ 
+        document.querySelectorAll('.sekolah-checkbox').forEach(cb => {
+            const sekolahId = parseInt(cb.value); // Sudah berupa Int
+            const card      = cb.closest('.sekolah-card');
+            const badge     = card.querySelector('.conflict-badge');
+ 
+            // Reset state default awal modal dibuka
+            cb.checked  = false;
+            cb.disabled = false;
+            card.classList.remove('checked', 'disabled');
+            badge.classList.add('d-none');
+ 
+            // Cek status kepemilikan sekolah
+            if (driverAssigned.includes(sekolahId)) {
+                cb.checked = true;
+                card.classList.add('checked');
+            } else if (allAssigned.includes(sekolahId)) {
+                cb.disabled = true;
+                card.classList.add('disabled');
+                badge.classList.remove('d-none'); // Badge "Sudah dipakai" akan muncul
+            }
+        });
+    });
+});
 </script>
 @endsection

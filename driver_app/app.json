@@ -4,11 +4,12 @@
     "slug": "driver_app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ikon-sppg.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/ikon-sppg.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,14 +18,19 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/ikon-sppg.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.elinakma.driver_app"
+      "package": "com.elinakma.driver_app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/ikon-sppg.png"
     },
     "plugins": [
       "expo-secure-store",
@@ -32,7 +38,13 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Izin untuk melacak lokasi saat pengiriman berlangsung."
+          "locationAlwaysAndWhenInUsePermission": "Izin untuk melacak lokasi saat pengiriman berlangsung.",
+          "android": {
+            "foregroundService": {
+              "title": "Laju Gizi sedang melacak lokasi",
+              "body": "Aplikasi sedang berjalan di latar belakang untuk tracking pengiriman."
+            }
+          }
         }
       ]
     ],

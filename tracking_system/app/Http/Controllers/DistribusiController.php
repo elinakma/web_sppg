@@ -70,7 +70,6 @@ class DistribusiController extends Controller
         Distribusi::create([
             'tanggal_awal' => $request->tanggal_awal,
             'tanggal_akhir' => $request->tanggal_akhir,
-            'status' => 'draf'
         ]);
 
         return redirect()->route('admin.distribusi.index')
@@ -81,62 +80,76 @@ class DistribusiController extends Controller
     {
         $distribusi = Distribusi::findOrFail($id);
 
-        $sekolahAktif = Sekolah::aktif()->get();
-
         // Ambil ID sekolah yang sudah tersimpan di distribusi ini
         $idSekolahTersimpan = DistribusiSekolah::where('id_distribusi', $id)
             ->distinct()
             ->pluck('id_sekolah');
+        
+        // Sekolah aktif saat ini
+        $sekolahAktifSekarang = Sekolah::aktif()->get();
 
-        // Sekolah yang sudah tersimpan tapi sekarang nonaktif
+        // Sekolah yang sudah tersimpan tapi sekarang nonaktif atau sudah dihapus
         $sekolahNonaktifTersimpan = Sekolah::whereIn('id', $idSekolahTersimpan)
-            ->where('status', '!=', 'Aktif')
+            ->withTrashed()
             ->get();
 
-        // Gabungkan: sekolah aktif + sekolah nonaktif yang sudah tersimpan di distribusi ini
-        $sekolahAktif = $sekolahAktif->merge($sekolahNonaktifTersimpan)->unique('id');
+        // Gabungan akhir : historis + aktif sa at ini
+        $sekolahAktif = $sekolahAktifSekarang
+            ->merge($sekolahNonaktifTersimpan)
+            ->unique('id')
+            ->sortBy('nama_sekolah');
 
-        $pagu = Pagu::getPaguAktif();
+        $paguSekarang = Pagu::getPaguAktif();
 
-        // Mengambil semua hari dari tanggal awal - akhir
-        $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
-        $end = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
-        $hariList = [];
-        while ($start->lte($end)) {
-            $hariList[] = $start->format('Y-m-d');
-            $start->addDay();
-        }
-
-        // Data Real Distribusi Sekolah
-        $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)->get();
+        $dataDistribusiRaw = DistribusiSekolah::where('id_distribusi', $id)
+            ->with('sekolah')
+            ->get();
+        
         $dataDistribusi = $dataDistribusiRaw->groupBy('tanggal_harian')
             ->map(fn($items) => $items->keyBy('id_sekolah'));
 
-        $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) use ($pagu) {
-            $totalKecil = $items->sum('porsi_kecil_harian');
-            $totalBesar = $items->sum('porsi_besar_harian');
-            $paguHarian = ($totalKecil * $pagu->pagu_porsi_kecil) + ($totalBesar * $pagu->pagu_porsi_besar);
+        // Snapshot pagu
+        $firstRecord = $dataDistribusiRaw->first();
+        $paguKecilEfektif = $firstRecord?->pagu_porsi_kecil ?? $paguSekarang->pagu_porsi_kecil;
+        $paguBesarEfektif = $firstRecord?->pagu_porsi_besar ?? $paguSekarang->pagu_porsi_besar;
 
+        $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) {
             return [
-                'total_porsi_kecil' => $totalKecil,
-                'total_porsi_besar' => $totalBesar,
-                'pagu_harian'       => $paguHarian,
+                'total_porsi_kecil' => $items->sum('porsi_kecil_harian'),
+                'total_porsi_besar' => $items->sum('porsi_besar_harian'),
+                'pagu_harian'       => $items->sum('pagu_harian_sekolah'),
             ];
         })->toArray();
 
-        // Preview default (jika belum ada data real di hari itu)
+        // Hari List + Preview
+        $hariList = [];
         $previewHarian = [];
         $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
-        foreach ($hariList as $tanggalStr) {
-            $totalKecil = $sekolahAktif->sum('porsi_kecil_default');
-            $totalBesar = $sekolahAktif->sum('porsi_besar_default');
-            $paguHarian = ($totalKecil * $pagu->pagu_porsi_kecil) + ($totalBesar * $pagu->pagu_porsi_besar);
+        $end = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
+
+        while ($start->lte($end)) {
+            $tanggalStr = $start->format('Y-m-d');
+            $hariList[] = $tanggalStr;
+
+            if (isset($dataDistribusi[$tanggalStr])) {
+                // Hari yang sudah ada datanya → gunakan data tersimpan (frozen)
+                $totalKecil = $dataDistribusi[$tanggalStr]->sum('porsi_kecil_harian');
+                $totalBesar = $dataDistribusi[$tanggalStr]->sum('porsi_besar_harian');
+            } else {
+                // Hari baru (belum pernah disimpan) → gunakan sekolah aktif SAAT INI
+                $totalKecil = $sekolahAktifSekarang->sum('porsi_kecil_default');
+                $totalBesar = $sekolahAktifSekarang->sum('porsi_besar_default');
+            }
+            
+            $paguHarian = ($totalKecil * $paguKecilEfektif) + ($totalBesar * $paguBesarEfektif);
 
             $previewHarian[$tanggalStr] = [
                 'total_porsi_kecil' => $totalKecil,
                 'total_porsi_besar' => $totalBesar,
                 'pagu_harian'       => $paguHarian,
             ];
+
+            $start->addDay();
         }
 
         $grandTotalPagu = collect($summaryHarian)->sum('pagu_harian');
@@ -148,14 +161,15 @@ class DistribusiController extends Controller
             'hariList',
             'summaryHarian',
             'previewHarian',
-            'pagu',
+            'paguKecilEfektif',
+            'paguBesarEfektif',
             'grandTotalPagu'
         ));
     }
     
     public function simpanTotal(Request $request)
     {
-        Log::debug('simpanTotal called', ['request' => $request->all()]); /// Cek data request masuk
+        Log::debug('simpanTotal called', ['request' => $request->all()]);
 
         try {
             $validated = $request->validate([
@@ -179,11 +193,7 @@ class DistribusiController extends Controller
             $saved = 0;
 
             foreach ($request->sekolah as $id_sekolah => $dataTanggal) {
-                Log::debug('Mulai loop sekolah', ['id_sekolah' => $id_sekolah, 'dataTanggal' => $dataTanggal]); // Cek loop sekolah
-
                 foreach ($dataTanggal as $tanggal_harian => $data) {
-                    Log::debug('Mulai sub-loop tanggal', ['tanggal_harian' => $tanggal_harian, 'data' => $data]); // Cek data per tanggal
-
                     $existing = DistribusiSekolah::where([
                         'id_distribusi' => $id_distribusi,
                         'id_sekolah' => $id_sekolah,
@@ -194,9 +204,12 @@ class DistribusiController extends Controller
                     $porsiBesar = (int) ($data['porsi_besar_harian'] ?? ($existing?->porsi_besar_harian ?? 0));
                     $totalPenerima = $porsiKecil + $porsiBesar;
 
-                    $jenisMenu = $data['jenis_menu'] ?? ($existing?->menu_kering > 0 ? 'kering' : ($existing?->menu_basah > 0 ? 'basah' : 'kering'));
+                    $jenisMenu = $data['jenis_menu'] ?? ($existing?->menu_kering > 0 ? 'kering' : 'basah');
 
-                    $paguHarianSekolah = ($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar);
+                    // === SNAPSHOT PAGU ===
+                    $paguKecil = $pagu->pagu_porsi_kecil;
+                    $paguBesar = $pagu->pagu_porsi_besar;
+                    $paguHarianSekolah = ($porsiKecil * $paguKecil) + ($porsiBesar * $paguBesar);
 
                     $record = DistribusiSekolah::updateOrCreate(
                         [
@@ -211,22 +224,22 @@ class DistribusiController extends Controller
                             'menu_basah' => $jenisMenu === 'basah' ? $totalPenerima : 0,
                             'total_penerima' => $totalPenerima,
                             'pagu_harian_sekolah' => $paguHarianSekolah,
+                            'pagu_porsi_kecil' => $paguKecil,
+                            'pagu_porsi_besar' => $paguBesar,
                             'keterangan' => $data['keterangan'] ?? $existing?->keterangan,
                         ]
                     );
 
                     $saved++;
-
-                    Log::debug('Record saved', ['record_id' => $record->id, 'was_new' => $record->wasRecentlyCreated]); // Cek simpan sukses
                 }
             }
 
-            Log::debug('Loop selesai, total saved', ['saved' => $saved]); // Total simpan
+            Log::debug('Loop selesai, total saved', ['saved' => $saved]);
 
             return redirect()->route('admin.distribusi.index')
                 ->with('success', "Berhasil menyimpan $saved record distribusi sekolah.");
         } catch (\Exception $e) {
-            Log::error('Error di simpanTotal', ['error' => $e->getMessage()]); // Catch error
+            Log::error('Error di simpanTotal', ['error' => $e->getMessage()]);
             return redirect()->back()->withErrors(['error' => 'Gagal menyimpan: ' . $e->getMessage()]);
         }
     }
@@ -250,7 +263,7 @@ class DistribusiController extends Controller
             $distribusi->status_display = 'Selesai';
             $distribusi->status_color   = 'bg-success';
         } elseif ($dikirim > 0 || $selesai > 0) {
-            $distribusi->status_display = 'Diproses';     // atau 'Dikirim' kalau mau
+            $distribusi->status_display = 'Diproses';
             $distribusi->status_color   = 'bg-warning text-dark';
         } else {
             $distribusi->status_display = 'Draf';
@@ -265,7 +278,7 @@ class DistribusiController extends Controller
             ->where('status', '!=', 'Aktif')->get();
         $sekolahAktif = $sekolahAktif->merge($sekolahNonaktifTersimpan)->unique('id');
 
-        $pagu = Pagu::getPaguAktif(); // hanya untuk referensi tampilan, BUKAN kalkulasi
+        $pagu = Pagu::getPaguAktif();
 
         $start = \Carbon\Carbon::parse($distribusi->tanggal_awal);
         $end   = \Carbon\Carbon::parse($distribusi->tanggal_akhir);
@@ -285,14 +298,10 @@ class DistribusiController extends Controller
 
         // Gunakan pagu_harian_sekolah yang sudah tersimpan, BUKAN hitung ulang
         $summaryHarian = $dataDistribusiRaw->groupBy('tanggal_harian')->map(function ($items) {
-            $totalKecil = $items->sum('porsi_kecil_harian');
-            $totalBesar = $items->sum('porsi_besar_harian');
-            $paguHarian = $items->sum('pagu_harian_sekolah'); // baca dari DB
-
             return [
-                'total_porsi_kecil' => $totalKecil,
-                'total_porsi_besar' => $totalBesar,
-                'pagu_harian'       => $paguHarian,
+                'total_porsi_kecil' => $items->sum('porsi_kecil_harian'),
+                'total_porsi_besar' => $items->sum('porsi_besar_harian'),
+                'pagu_harian'       => $items->sum('pagu_harian_sekolah'),
             ];
         })->toArray();
 
@@ -302,6 +311,7 @@ class DistribusiController extends Controller
             'distribusi',
             'sekolahAktif',
             'dataDistribusi',
+            'dataDistribusiRaw',
             'hariList',
             'summaryHarian',
             'grandTotalPagu',

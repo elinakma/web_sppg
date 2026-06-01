@@ -1,65 +1,157 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, RefreshControl,
-  Alert, ActivityIndicator, ScrollView
+  View, Text, StyleSheet, RefreshControl, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
-import { getAslapDriverLocations } from '../../utils/api';
+import WebView from 'react-native-webview';
+import { getAslapDriversWithHistory, getDriverHistory } from '../../utils/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AslapMonitoringScreen({ navigation }) {
-  const [drivers, setDrivers]     = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [errorMsg, setErrorMsg]   = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [mapReady, setMapReady] = useState(false);
 
+  const webRef = useRef(null);
   const intervalRef = useRef(null);
+  const routeCache = useRef({});
+  const addressCache = useRef({});
 
-  const fetchData = async (isBackground = false) => {
+  // ================== GET ADDRESS ==================
+  const getAddress = async (lat, lng) => {
+    if (!lat || !lng) return 'Lokasi tidak tersedia';
+    const cacheKey = `${parseFloat(lat).toFixed(6)},${parseFloat(lng).toFixed(6)}`;
+    if (addressCache.current[cacheKey]) return addressCache.current[cacheKey];
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'Accept-Language': 'id',
+            'User-Agent': 'TrackingSystemApp/1.0',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      const data = await response.json();
+      if (data?.display_name) {
+        addressCache.current[cacheKey] = data.display_name;
+        return data.display_name;
+      }
+    } catch (_) {}
+    return 'Alamat tidak dapat diambil';
+  };
+
+  // ================== FETCH DATA ==================
+  const fetchAll = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     setErrorMsg('');
 
     try {
-      const data = await getAslapDriverLocations();
-      console.log('[AslapMonitoring] Driver:', data.length, '| punya lokasi:', data.filter(d => d.has_location).length);
-      setDrivers(data);
-    } catch (error) {
-      console.error('[AslapMonitoring] Error:', error);
+      const data = await getAslapDriversWithHistory();
 
-      let message = 'Gagal memuat data monitoring';
+      const processed = await Promise.all(
+        data.map(async (driver) => {
+          let rawHistory = [];
+          let snappedRoute = [];
+
+          if (driver.is_online && driver.location) {
+            rawHistory = await getDriverHistory(driver.id);
+            if (rawHistory.length >= 2) {
+              snappedRoute = await processRoute(rawHistory);
+            } else {
+              snappedRoute = rawHistory.map(p => ({
+                latitude: parseFloat(p.latitude),
+                longitude: parseFloat(p.longitude),
+              }));
+            }
+          }
+
+          const address = driver.location?.latitude && driver.location?.longitude
+            ? await getAddress(driver.location.latitude, driver.location.longitude)
+            : null;
+
+          return { ...driver, rawHistory, history: snappedRoute, address };
+        })
+      );
+
+      setDrivers(processed);
+
+      if (webRef.current && mapReady && processed.length > 0) {
+        const active = processed.filter(d => d.is_online && d.history?.length > 0);
+        if (active.length > 0) {
+          webRef.current.injectJavaScript(`
+            if (window.updateDrivers) {
+              window.updateDrivers(${JSON.stringify(active)});
+            }
+          `);
+        }
+      }
+    } catch (error) {
+      console.error(error);
       if (error.response?.status === 401 || error.message?.includes('token')) {
-        message = 'Sesi expired. Silakan login kembali.';
-        Alert.alert('Session Expired', message, [
+        Alert.alert('Sesi Habis', 'Silakan login kembali', [
           { text: 'OK', onPress: () => navigation.replace('Login') }
         ]);
-      } else if (error.response?.status === 403) {
-        message = 'Akses ditolak.';
-      } else {
-        message = error.response?.data?.message || error.message;
       }
-      setErrorMsg(message);
+      setErrorMsg('Gagal memuat data monitoring');
     } finally {
       if (!isBackground) setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // ================== OSRM ==================
+  const processRoute = async (points) => {
+    const rawCoords = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
+    const sig = `${rawCoords[0][0].toFixed(5)},${rawCoords[0][1].toFixed(5)}|${rawCoords.at(-1)[0].toFixed(5)},${rawCoords.at(-1)[1].toFixed(5)}`;
+
+    if (routeCache.current[sig]) return routeCache.current[sig];
+
+    try {
+      let waypoints = rawCoords;
+      const MAX_WP = 30;
+      if (waypoints.length > MAX_WP) {
+        const step = Math.ceil(waypoints.length / MAX_WP);
+        waypoints = waypoints.filter((_, i) => i % step === 0 || i === waypoints.length - 1);
+      }
+
+      const coordStr = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson&steps=false`;
+
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const data = await res.json();
+
+      if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length > 1) {
+        const road = data.routes[0].geometry.coordinates.map(([lng, lat]) => ({
+          latitude: lat,
+          longitude: lng,
+        }));
+        routeCache.current[sig] = road;
+        return road;
+      }
+    } catch (e) {
+      console.warn('OSRM gagal, fallback ke raw GPS');
+    }
+
+    return rawCoords.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
+  };
+
   useEffect(() => {
-    fetchData();
-    intervalRef.current = setInterval(() => fetchData(true), 10000);
+    fetchAll();
+    intervalRef.current = setInterval(() => fetchAll(true), 20000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData();
+    fetchAll();
   };
 
-  // Driver yang sudah punya koordinat valid
-  const driversWithLocation = drivers.filter(
-    d => d.has_location && d.latitude !== null && d.longitude !== null
-  );
+  const activeDrivers = drivers.filter(d => d.is_online && d.location && d.history?.length > 0);
 
   if (loading && drivers.length === 0) {
     return (
@@ -72,161 +164,160 @@ export default function AslapMonitoringScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Text style={styles.title}>Pemantauan Pengiriman</Text>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <Text style={styles.title}>Pemantauan Perjalanan</Text>
 
-        {errorMsg ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{errorMsg}</Text>
-          </View>
-        ) : (
-          <>
-            {/* ── MAP ─────────────────────────────────────── */}
-            <View style={styles.mapContainer}>
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude:      -7.55,
-                  longitude:     111.52,
-                  latitudeDelta:  0.8,
-                  longitudeDelta: 0.8,
-                }}
-              >
-                {driversWithLocation.map(driver => (
-                  <Marker
-                    key={driver.id}
-                    coordinate={{
-                      // latitude & longitude sudah flat dari api.js
-                      latitude:  parseFloat(driver.latitude),
-                      longitude: parseFloat(driver.longitude),
-                    }}
-                    title={driver.name}
-                    description={
-                      driver.tracked_at
-                        ? `Update: ${new Date(driver.tracked_at).toLocaleTimeString('id-ID')}`
-                        : 'Lokasi tersedia'
-                    }
-                  >
-                    <View style={styles.markerContainer}>
-                      <Icon
-                        name="truck-delivery"
-                        size={34}
-                        color={driver.sedang_berjalan ? '#6366f1' : '#9ca3af'}
-                      />
-                    </View>
-                  </Marker>
-                ))}
-              </MapView>
+        {errorMsg && <View style={styles.errorBox}><Text style={styles.errorText}>{errorMsg}</Text></View>}
 
-              {/* Info overlay jika belum ada driver dengan lokasi */}
-              {driversWithLocation.length === 0 && (
-                <View style={styles.mapOverlay}>
-                  <Icon name="map-marker-off" size={28} color="#9ca3af" />
-                  <Text style={styles.mapOverlayText}>
-                    Belum ada driver yang aktif tracking
-                  </Text>
+        {/* Leaflet Map */}
+        <View style={styles.mapContainer}>
+          <WebView
+            ref={webRef}
+            originWhitelist={['*']}
+            source={{ html: getLeafletHTML() }}
+            style={styles.map}
+            javaScriptEnabled={true}
+            onLoad={() => setMapReady(true)}
+            onError={() => setErrorMsg('Gagal memuat peta')}
+          />
+        </View>
+
+        {/* Daftar Driver */}
+        <Text style={styles.subtitle}>Daftar Driver ({drivers.length})</Text>
+
+        <View style={{ paddingHorizontal: 16 }}>
+          {drivers.map(driver => (
+            <View key={driver.id} style={styles.driverCard}>
+              <View style={styles.driverHeader}>
+                <Icon name="account" size={28} color="#374151" />
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={styles.driverName}>{driver.name}</Text>
+                  <Text style={styles.email}>{driver.email}</Text>
                 </View>
-              )}
-            </View>
-
-            {/* ── LIST DRIVER ─────────────────────────────── */}
-            <Text style={styles.subtitle}>
-              Daftar Driver ({drivers.length})
-            </Text>
-
-            <View style={{ paddingHorizontal: 16 }}>
-              {drivers.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Icon name="account-off" size={32} color="#9ca3af" />
-                  <Text style={styles.emptyText}>Belum ada data driver</Text>
-                </View>
-              ) : (
-                drivers.map(driver => (
-                  <View key={driver.id} style={styles.driverCard}>
-
-                    <View style={styles.driverHeader}>
-                      <Icon name="account" size={24} color="#374151" />
-                      <Text style={styles.driverName}>{driver.name}</Text>
-
-                      <View style={[
-                        styles.trackingBadge,
-                        { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }
-                      ]}>
-                        <Icon
-                          name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'}
-                          size={12}
-                          color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'}
-                        />
-                        <Text style={[
-                          styles.trackingText,
-                          { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }
-                        ]}>
-                          {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Lokasi — pakai flat property dari api.js */}
-                    {driver.has_location ? (
-                      <Text style={styles.locationText}>
-                        📍 {parseFloat(driver.latitude).toFixed(5)}, {parseFloat(driver.longitude).toFixed(5)}{'\n'}
-                        {driver.tracked_at
-                          ? `Terakhir update: ${new Date(driver.tracked_at).toLocaleString('id-ID')}`
-                          : 'Waktu tidak tersedia'
-                        }
-                      </Text>
-                    ) : (
-                      <Text style={styles.noLocation}>
-                        Belum ada data lokasi
-                        {driver.sedang_berjalan ? ' — menunggu kiriman GPS...' : ''}
-                      </Text>
-                    )}
-
+                {driver.sedang_berjalan !== undefined && (
+                  <View style={[styles.trackingBadge, { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }]}>
+                    <Icon name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'} size={14} color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'} />
+                    <Text style={[styles.trackingText, { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }]}>
+                      {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
+                    </Text>
                   </View>
-                ))
+                )}
+              </View>
+
+              {driver.address ? (
+                <Text style={styles.locationText}>📍 {driver.address}</Text>
+              ) : driver.location ? (
+                <Text style={styles.locationText}>
+                  📍 {parseFloat(driver.location.latitude).toFixed(5)}, {parseFloat(driver.location.longitude).toFixed(5)}
+                </Text>
+              ) : null}
+
+              {driver.tracking_stats && (
+                <Text style={styles.stats}>
+                  🛣️ {driver.tracking_stats.total_km} km • {driver.tracking_stats.point_count} titik
+                </Text>
               )}
             </View>
-          </>
-        )}
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+// ================== LEAFLET HTML ==================
+const getLeafletHTML = () => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin:0; padding:0; }
+    #map { height: 100vh; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    const map = L.map('map').setView([-7.55, 111.52], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let polylines = [];
+    let markers = [];
+
+    window.updateDrivers = function(drivers) {
+      polylines.forEach(p => map.removeLayer(p));
+      markers.forEach(m => map.removeLayer(m));
+      polylines = [];
+      markers = [];
+
+      drivers.forEach(driver => {
+        if (!driver.history || driver.history.length < 1) return;
+
+        const coords = driver.history.map(p => [p.latitude, p.longitude]);
+
+        // Rute
+        const polyline = L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85 }).addTo(map);
+        polylines.push(polyline);
+
+        // Marker Start
+        if (coords.length > 0) {
+          const start = L.marker(coords[0], {
+            icon: L.divIcon({ html: '🚩', iconSize: [32, 32], className: 'custom-marker' })
+          }).addTo(map).bindPopup(\`Titik Awal - \${driver.name}\`);
+          markers.push(start);
+        }
+
+        // Marker End
+        if (coords.length > 1) {
+          const end = L.marker(coords[coords.length-1], {
+            icon: L.divIcon({ html: '🚚', iconSize: [32, 32], className: 'custom-marker' })
+          }).addTo(map).bindPopup(\`Posisi Saat Ini - \${driver.name}\`);
+          markers.push(end);
+        }
+      });
+
+      if (polylines.length > 0) {
+        map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [60, 60] });
+      }
+    };
+  </script>
+</body>
+</html>`;
+
 const styles = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: '#f5f7fb' },
-  title:           { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 16 },
-  subtitle:        { fontSize: 18, fontWeight: '600', marginHorizontal: 16, marginTop: 10, marginBottom: 10 },
+  container: { flex: 1, backgroundColor: '#f5f7fb' },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 16 },
+  subtitle: { fontSize: 18, fontWeight: '600', marginHorizontal: 16, marginVertical: 12 },
 
-  mapContainer:    { height: 300, marginHorizontal: 16, marginBottom: 10, borderRadius: 14, overflow: 'hidden' },
-  map:             { flex: 1 },
+  mapContainer: { 
+    height: 380, 
+    margin: 16, 
+    borderRadius: 16, 
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  map: { flex: 1 },
 
-  // Overlay di atas peta saat tidak ada marker
-  mapOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.6)' },
-  mapOverlayText:  { marginTop: 8, color: '#6b7280', fontSize: 13, textAlign: 'center' },
+  driverCard: { backgroundColor: '#fff', marginBottom: 12, padding: 16, borderRadius: 16, elevation: 2 },
+  driverHeader: { flexDirection: 'row', alignItems: 'center' },
+  driverName: { fontSize: 17, fontWeight: '700' },
+  email: { color: '#64748b', fontSize: 13 },
+  trackingBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, gap: 4 },
+  trackingText: { fontSize: 12, fontWeight: '600' },
 
-  markerContainer: { alignItems: 'center' },
+  locationText: { marginTop: 8, fontSize: 14, color: '#374151', lineHeight: 20 },
+  stats: { marginTop: 6, fontSize: 13, color: '#0ea5e9' },
 
-  driverCard:      { backgroundColor: '#fff', padding: 16, borderRadius: 14, marginBottom: 12 },
-  driverHeader:    { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  driverName:      { marginLeft: 10, fontWeight: '600', fontSize: 16 },
+  errorBox: { margin: 16, padding: 16, backgroundColor: '#fee2e2', borderRadius: 12 },
+  errorText: { color: '#dc2626', textAlign: 'center' },
 
-  trackingBadge:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, marginLeft: 'auto', gap: 4 },
-  trackingText:    { fontSize: 11, fontWeight: '600' },
-
-  locationText:    { fontSize: 14, color: '#374151', lineHeight: 20 },
-  noLocation:      { fontSize: 14, color: '#9ca3af', fontStyle: 'italic' },
-
-  errorBox:        { margin: 16, padding: 16, backgroundColor: '#fee2e2', borderRadius: 12 },
-  errorText:       { color: '#dc2626', textAlign: 'center' },
-
-  emptyBox:        { alignItems: 'center', paddingVertical: 32 },
-  emptyText:       { marginTop: 8, color: '#9ca3af', fontSize: 14 },
-
-  center:          { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText:     { marginTop: 10, color: '#6b7280' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, color: '#6b7280' },
 });

@@ -1,28 +1,36 @@
 import axios from 'axios'; // library untuk melakukan request HTTP ke server laravel
 import * as SecureStore from 'expo-secure-store'; // library untuk menyimpan data secara aman di perangkat
 
-const API_BASE_URL = 'https://dipsacaceous-dere-bridgette.ngrok-free.dev/api';
+const API_BASE_URL = 'https://sppggeneng.my.id/api';
 
 export const login = async (email, password) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/login`, 
+    const response = await axios.post(`${API_BASE_URL}/login`,
       { email, password },
       {
         headers: {
-          'Accept': 'application/json',
+          'Accept'      : 'application/json',
           'Content-Type': 'application/json',
         }
       }
     );
-
-    const { token } = response.data;
+ 
+    const { token, user } = response.data;
     await SecureStore.setItemAsync('authToken', token);
-    return response.data; 
-
+    await SecureStore.setItemAsync('userRole', user.role);
+ 
+    return response.data;
+ 
   } catch (error) {
-    console.error("Login Error Full:", error.response?.data || error.message);
+    console.error('Login Error Full:', error.response?.data || error.message);
     throw error;
   }
+};
+
+// Logout dengan menghapus token dari secure store
+export const logout = async () => {
+  await SecureStore.deleteItemAsync('authToken');
+  await SecureStore.deleteItemAsync('userRole');
 };
 
 export const forgotPassword = async (email) => {
@@ -33,6 +41,37 @@ export const forgotPassword = async (email) => {
     console.error('Error forgot password:', error.response?.data || error.message);
     throw error;
   }
+};
+
+// Tambahkan fungsi baru
+export const getAslapDriversWithHistory = async () => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.get(`${API_BASE_URL}/aslap/drivers/locations`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  return response.data || [];
+};
+
+export const getDriverHistory = async (driverId) => {
+  const token = await SecureStore.getItemAsync('authToken');
+  if (!token) throw new Error('No token found');
+
+  const response = await axios.get(`${API_BASE_URL}/drivers/${driverId}/history`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+  });
+
+  return response.data || [];
 };
 
 // ============ DRIVER API ============
@@ -50,12 +89,6 @@ export const sendLocation = async (latitude, longitude) => {
     throw error;
   }
 };
-
-// Logout dengan menghapus token dari secure store
-export const logout = async () => {
-  await SecureStore.deleteItemAsync('authToken');
-};
-
 
 // Ambil daftar sekolah yang diassign ke driver ini
 export const getDistribusi = async () => {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sekolah;
+use App\Models\DistribusiSekolah;
 use Illuminate\Http\Request;
 
 class SekolahController extends Controller
@@ -65,9 +66,19 @@ class SekolahController extends Controller
 
     public function destroy(Sekolah $sekolah)
     {
-        $sekolah->delete();
+        // Cek apakah sekolah ini pernah dipakai di distribusi sekolah
+        $pernahDipakai = DistribusiSekolah::where('id_sekolah', $sekolah->id)->exists();
+
+        if ($pernahDipakai) {
+            $sekolah->delete();
+            return redirect()->route('admin.sekolah.index')
+                ->with('success', 'Sekolah berhasil dihapus. Data historis di distribusi tetap tersimpan.');
+        }
+
+        // Jika belum pernah dipakai, hapus permanen
+        $sekolah->forceDelete();
 
         return redirect()->route('admin.sekolah.index')
-            ->with('success', 'Data sekolah berhasil dihapus.');
+            ->with('success', 'Data sekolah berhasil dihapus secara permanen.');
     }
 }

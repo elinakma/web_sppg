@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 
 class NotifikasiController extends Controller
 {
-    /** GET /admin/notifikasi — halaman daftar semua notifikasi */
     public function index(Request $request)
     {
         $notifikasi = Notifikasi::untukUser(Auth::id())
@@ -24,7 +23,6 @@ class NotifikasiController extends Controller
         return view('admin.notifikasi.index', compact('notifikasi'));
     }
 
-    /** GET /admin/notifikasi/dropdown — AJAX, 10 notif terbaru */
     public function dropdown()
     {
         $notifikasi = Notifikasi::untukUser(Auth::id())
@@ -36,7 +34,7 @@ class NotifikasiController extends Controller
                 'id'       => $n->id,
                 'judul'    => $n->judul,
                 'pesan'    => $n->pesan,
-                'is_read'  => $n->dibaca,       // ← tetap kirim is_read ke JS navbar
+                'is_read'  => $n->dibaca,
                 'waktu'    => $n->waktuRelatif(),
                 'url'      => $n->url ?? '#',
                 'tipe'     => $n->tipe,
@@ -53,7 +51,6 @@ class NotifikasiController extends Controller
         ]);
     }
 
-    /** POST /admin/notifikasi/{notifikasi}/baca */
     public function baca(Notifikasi $notifikasi)
     {
         if ($notifikasi->user_id !== Auth::id()) {
@@ -63,29 +60,11 @@ class NotifikasiController extends Controller
         return response()->json(['success' => true]);
     }
 
-    /** POST /admin/notifikasi/baca-semua */
     public function bacaSemua()
     {
         Notifikasi::untukUser(Auth::id())
             ->belumDibaca()
             ->update(['dibaca' => true, 'waktu_dibaca' => now()]);
-        return response()->json(['success' => true]);
-    }
-
-    /** DELETE /admin/notifikasi/{notifikasi} */
-    public function destroy(Notifikasi $notifikasi)
-    {
-        if ($notifikasi->user_id !== Auth::id()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-        $notifikasi->delete();
-        return response()->json(['success' => true]);
-    }
-
-    /** DELETE /admin/notifikasi/hapus-semua */
-    public function hapusSemua()
-    {
-        Notifikasi::untukUser(Auth::id())->delete();
         return response()->json(['success' => true]);
     }
 }

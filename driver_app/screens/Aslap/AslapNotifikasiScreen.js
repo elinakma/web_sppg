@@ -11,7 +11,8 @@ import {
   bacaSemuaNotifikasi,
 } from '../../utils/api';
 
-export default function AslapNotifikasiScreen() {
+// Tangkap prop navigation untuk fungsi back kustom
+export default function AslapNotifikasiScreen({ navigation }) {
   const [notifikasi, setNotifikasi]   = useState([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
@@ -20,7 +21,6 @@ export default function AslapNotifikasiScreen() {
 
   useEffect(() => {
     fetchNotifikasi();
-    // Polling tiap 15 detik saat screen aktif
     intervalRef.current = setInterval(() => fetchNotifikasi(true), 15_000);
     return () => clearInterval(intervalRef.current);
   }, []);
@@ -47,7 +47,6 @@ export default function AslapNotifikasiScreen() {
   const handleBaca = async (id) => {
     try {
       await bacaNotifikasi(id);
-      // Update state lokal — tidak perlu re-fetch
       setNotifikasi(prev =>
         prev.map(n => n.id === id ? { ...n, dibaca: true } : n)
       );
@@ -116,14 +115,25 @@ export default function AslapNotifikasiScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    // Hanya sisakan padding top untuk area status bar/notch HP agar mepet pas
+    <SafeAreaView style={styles.container} edges={['top']}>
+      
+      {/* HEADER KUSTOM YANG SUDAH DIPERBAIKI */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Notifikasi</Text>
-          {belumDibaca > 0 && (
-            <Text style={styles.headerSub}>{belumDibaca} belum dibaca</Text>
-          )}
+        <View style={styles.headerLeft}>
+          {/* Tombol Back manual menggantikan bawaan navigator */}
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color="#111827" />
+          </TouchableOpacity>
+          
+          <View>
+            <Text style={styles.headerTitle}>Notifikasi</Text>
+            {belumDibaca > 0 && (
+              <Text style={styles.headerSub}>{belumDibaca} belum dibaca</Text>
+            )}
+          </View>
         </View>
+
         {belumDibaca > 0 && (
           <TouchableOpacity onPress={handleBacaSemua} style={styles.bacaSemua}>
             <Ionicons name="checkmark-done" size={15} color="#0d6efd" />
@@ -159,14 +169,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    padding: 4,
+    marginRight: 6,
+  },
   headerTitle:  { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  headerSub:    { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  headerSub:    { fontSize: 13, color: '#6b7280', marginTop: 1 },
 
   bacaSemua: {
     flexDirection: 'row',
@@ -179,7 +197,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#bfdbfe',
   },
-  bacaSemuaText: { color: '#0d6efd', fontWeight: '600', fontSize: 12 },
+  bacaSemuaText: { color: '#0d6efd', fontWeight: '600', fontSize: 11 },
 
   notifItem: {
     flexDirection: 'row',

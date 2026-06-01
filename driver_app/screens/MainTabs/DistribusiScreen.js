@@ -65,55 +65,48 @@ export default function DistribusiScreen() {
 
   // Start Tracking 
   const handleStartTracking = async () => {
-    Alert.alert(
-      'Mulai Tracking?',
-      'GPS akan terus berjalan meskipun aplikasi ditutup.',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Mulai',
-          onPress: async () => {
-            try {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('Izin GPS ditolak');
-                return;
-              }
+    try {
+      // Request permissions
+      const foreground = await Location.requestForegroundPermissionsAsync();
+      if (foreground.status !== 'granted') {
+        Alert.alert('Izin Ditolak', 'Aplikasi membutuhkan izin lokasi.');
+        return;
+      }
 
-              await Location.requestBackgroundPermissionsAsync();
+      const background = await Location.requestBackgroundPermissionsAsync();
+      if (background.status !== 'granted') {
+        Alert.alert('Izin Background Ditolak', 'Fitur tracking membutuhkan izin latar belakang.');
+        return;
+      }
 
-              // Tandai semua distribusi hari ini → 'dikirim' di server
-              await startTracking();
+      await startTracking(); // update status di server
 
-              await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-                accuracy: Location.Accuracy.High,
-                timeInterval: 10000,
-                distanceInterval: 20,
-                showsBackgroundLocationIndicator: true,
-                foregroundService: {
-                  notificationTitle: 'Tracking Pengiriman',
-                  notificationBody: 'Sedang mengirim lokasi...',
-                },
-              });
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,        // setiap 10 detik
+        distanceInterval: 20,
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: "Laju Gizi - Tracking Pengiriman",
+          notificationBody: "Sedang melacak lokasi pengiriman...",
+        },
+      });
 
-              setIsTracking(true);
-              fetchSekolah();
+      setIsTracking(true);
+      fetchSekolah();
 
-            } catch (error) {
-              console.error(error);
-              Alert.alert('Gagal memulai tracking', error.message);
-            }
-          }
-        }
-      ]
-    );
+      Alert.alert('Tracking Dimulai', 'GPS sedang aktif di latar belakang.');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Gagal Memulai Tracking', error.message || 'Terjadi kesalahan');
+    }
   };
 
   // Stop Tracking
   const handleStopTracking = async () => {
     Alert.alert(
       'Stop Tracking?',
-      'Pengiriman hari ini akan ditandai selesai dan tombol tidak akan muncul lagi hari ini.',
+      'Apakah Anda yakin ingin menghentikan tracking hari ini?',
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -125,17 +118,14 @@ export default function DistribusiScreen() {
                 await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
               }
 
-              // Tandai semua yang masih 'dikirim' → 'selesai' di server
               await stopTracking();
-
               setIsTracking(false);
-
-              // Refresh → sekarang semua status jadi 'selesai'
-              // → semuaSelesai = true → tombol otomatis hilang
               fetchSekolah();
 
+              Alert.alert('Tracking Dihentikan', 'Pengiriman hari ini telah ditandai selesai.');
             } catch (error) {
-              Alert.alert('Gagal menghentikan tracking');
+              console.error(error);
+              Alert.alert('Gagal Stop Tracking');
             }
           }
         }

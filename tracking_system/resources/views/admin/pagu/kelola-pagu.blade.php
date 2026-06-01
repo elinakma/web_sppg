@@ -92,19 +92,29 @@ document.addEventListener('DOMContentLoaded', function(){
     const kecil = document.getElementById('kecil');
     const besar = document.getElementById('besar');
 
-    btnEdit.addEventListener('click', function(){
+    if (btnEdit) {
+        btnEdit.addEventListener('click', function(){
+            kecil.removeAttribute('readonly');
+            besar.removeAttribute('readonly');
+            btnSimpan.removeAttribute('disabled');
+            btnEdit.disabled = true;
+            kecil.focus();
+        });
+    }
 
-        kecil.removeAttribute('readonly');
-        besar.removeAttribute('readonly');
+    const successOverlay = document.querySelector('.success-overlay');
+    if (successOverlay) {
+        setTimeout(() => {
+            successOverlay.classList.add('show');
+        }, 100);
 
-        btnSimpan.removeAttribute('disabled');
-
-        kecil.focus();
-
-        btnEdit.innerHTML = '<i class="bi bi-pencil-fill me-1"></i> Edit';
-        btnEdit.disabled = true;
-    });
-
+        setTimeout(() => {
+            successOverlay.classList.add('hide');
+            setTimeout(() => {
+                successOverlay.remove();
+            }, 400);
+        }, 3000);
+    }
 });
 </script>
 @endsection

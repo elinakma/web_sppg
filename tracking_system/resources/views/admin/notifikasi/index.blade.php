@@ -36,16 +36,6 @@
                         Total {{ $notifikasi->total() }} notifikasi
                     </p>
                 </div>
-                <form method="POST"
-                      action="{{ route('admin.notifikasi.hapus-semua') }}"
-                      onsubmit="return confirm('Hapus semua notifikasi?')"
-                      id="hapusSemuaForm">
-                    @csrf @method('DELETE')
-                    <button type="submit"
-                            class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash3 me-1"></i> Hapus Semua
-                    </button>
-                </form>
             </div>
 
             @if(session('success'))
@@ -108,20 +98,6 @@
                         </span>
                     </div>
                 </div>
-
-                {{-- Hapus --}}
-                <form method="POST"
-                      action="{{ route('admin.notifikasi.destroy', $n) }}"
-                      onsubmit="return confirm('Hapus notifikasi ini?')">
-                    @csrf @method('DELETE')
-                    <button type="submit"
-                            class="btn btn-sm btn-outline-danger p-1"
-                            style="width:28px;height:28px;line-height:1;border-radius:8px;"
-                            title="Hapus">
-                        <i class="bi bi-x" style="font-size:.85rem;"></i>
-                    </button>
-                </form>
-            </div>
             @empty
             <div class="text-center py-5">
                 <i class="bi bi-bell-slash text-muted" style="font-size:3rem;opacity:.3;"></i>

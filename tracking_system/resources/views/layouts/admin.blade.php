@@ -669,9 +669,6 @@
     @yield('scripts')
     </body>
 
-    @yield('scripts')
-</body>
-
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 

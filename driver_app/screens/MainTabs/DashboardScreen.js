@@ -66,8 +66,9 @@ export default function TrackingScreen() {
             <Text style={styles.welcomeText}>
             Selamat datang, <Text style={{ fontWeight: 'bold' }}>{stats?.nama_driver || '-'}</Text>
             </Text>
-            <Text style={styles.welcomeLogin}>
-            Anda Login sebagai <Text style={{ fontWeight: 'bold' }}>Driver</Text>
+            <Text style={{ color: '#666', marginTop: 4 }}>
+                Anda login sebagai{' '}
+                <Text style={{ fontWeight: 'bold' }}>Driver</Text>
             </Text>
         </View>
 

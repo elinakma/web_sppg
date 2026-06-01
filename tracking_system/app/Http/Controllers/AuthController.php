@@ -110,58 +110,6 @@ class AuthController extends Controller
             : back()->withErrors(['email' => __($status)]);
     }
 
-    public function showVerifyEmail()
-    {
-        return view('auth.verify-email');
-    }
-
-    public function verifyEmail(Request $request)
-    {
-        $user = User::findOrFail($request->route('id'));
-
-        if (! hash_equals(sha1($user->getEmailForVerification()), (string) $request->route('hash'))) {
-            abort(403);
-        }
-
-        if (!$user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new Verified($user));
-        }
-
-        return redirect()->route('admin.dashboard')->with('status', 'Email berhasil diverifikasi!');
-    }
-
-    public function resendVerification(Request $request)
-    {
-        $user = $request->user();
-
-        if ($user->hasVerifiedEmail()) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        return back()->with('status', 'Link verifikasi baru telah dikirim!');
-    }
-
-    public function showConfirmPassword()
-    {
-        return view('auth.confirm-password');
-    }
-
-    public function confirmPassword(Request $request)
-    {
-        if (! Hash::check($request->password, $request->user()->password)) {
-            throw ValidationException::withMessages([
-                'password' => ['Password yang Anda masukkan salah.'],
-            ]);
-        }
-
-        $request->session()->passwordConfirmed();
-
-        return redirect()->intended(route('admin.dashboard'));
-    }
-
     public function logout(Request $request)
     {
         Auth::logout();

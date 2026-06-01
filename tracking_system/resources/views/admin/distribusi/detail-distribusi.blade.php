@@ -58,6 +58,7 @@
                                 <th>Total Porsi Besar</th>
                                 <th>Total Penerima</th>
                                 <th>Pagu Harian</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -65,25 +66,52 @@
                                 @php
                                     $tanggal = \Carbon\Carbon::parse($tanggalStr);
                                     $namaHari = $tanggal->locale('id')->dayName;
+
                                     $summary = $summaryHarian[$tanggalStr] ?? [
                                         'total_porsi_kecil' => 0,
                                         'total_porsi_besar' => 0,
                                         'pagu_harian'       => 0,
                                     ];
+
+                                    // Ambil semua data sekolah di hari tersebut
+                                    $itemsHariIni = $dataDistribusiRaw->where('tanggal_harian', $tanggalStr);
+                                    $statusHari = 'draf';
+
+                                    if ($itemsHariIni->where('status', 'selesai')->count() === $itemsHariIni->count() && $itemsHariIni->count() > 0) {
+                                        $statusHari = 'selesai';
+                                    } elseif ($itemsHariIni->whereIn('status', ['dikirim', 'selesai'])->count() > 0) {
+                                        $statusHari = 'dikirim';
+                                    }
+
+                                    if ($statusHari === 'selesai') {
+                                        $statusDisplay = 'Selesai';
+                                        $statusColor = 'bg-success';
+                                    } elseif ($statusHari === 'dikirim') {
+                                        $statusDisplay = 'Diproses';
+                                        $statusColor = 'bg-warning text-dark';
+                                    } else {
+                                        $statusDisplay = 'Draf';
+                                        $statusColor = 'bg-primary';
+                                    }
                                 @endphp
                                 <tr>
-                                    <td>{{ $namaHari }}</td>
-                                    <td>{{ $tanggal->format('d M Y') }}</td>
+                                    <td class="text-center">{{ $namaHari }}</td>
+                                    <td class="text-center">{{ $tanggal->format('d M Y') }}</td>
                                     <td class="text-center">{{ $summary['total_porsi_kecil'] }}</td>
                                     <td class="text-center">{{ $summary['total_porsi_besar'] }}</td>
                                     <td class="text-center">{{ $summary['total_porsi_kecil'] + $summary['total_porsi_besar'] }}</td>
                                     <td class="text-end fw-bold text-success">
                                         Rp {{ number_format($summary['pagu_harian'], 0, ',', '.') }}
                                     </td>
+                                    <td class="text-center">
+                                        <span class="badge status-badge {{ $statusColor }}">
+                                            {{ $statusDisplay }}
+                                        </span>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">Belum ada data</td>
+                                    <td colspan="7" class="text-center text-muted py-4">Belum ada data</td>
                                 </tr>
                             @endforelse
                         </tbody>

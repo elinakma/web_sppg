@@ -41,17 +41,11 @@
                 @csrf
                 <input type="hidden" name="id_distribusi" value="{{ $distribusi->id }}">
 
-                @php
-                    $pagu = $pagu;
-                    $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                    $start = \Carbon\Carbon::parse($distribusi->tanggal_distribusi);
-                @endphp
-
                 <div class="accordion" id="accordionDistribusi">
                     @foreach($hariList as $index => $tanggalStr)
                         @php
                             $tanggal = \Carbon\Carbon::parse($tanggalStr);
-                            $namaHari = $tanggal->locale('id')->dayName; // Senin, Selasa, dst
+                            $namaHari = $tanggal->locale('id')->dayName;
                         @endphp
 
                         <div class="accordion-item mb-3 border shadow-sm">
@@ -84,11 +78,14 @@
                                                             $data?->porsi_besar_harian ?? $s->porsi_besar_default);
 
                                             $total = $porsiKecil + $porsiBesar;
+                                            $paguKecil = $data?->pagu_porsi_kecil ?? $paguKecilEfektif;
+                                            $paguBesar = $data?->pagu_porsi_besar ?? $paguBesarEfektif;
 
                                             $paguSekolah = $data?->pagu_harian_sekolah 
-                                                        ?? (($porsiKecil * $pagu->pagu_porsi_kecil) + ($porsiBesar * $pagu->pagu_porsi_besar));
+                                                        ?? (($porsiKecil * $paguKecil) + ($porsiBesar * $paguBesar));
 
-                                            $jenisMenu = $data?->menu_kering > 0 ? 'kering' : ($data?->menu_basah > 0 ? 'basah' : 'kering');
+                                            $jenisMenu = $data?->menu_kering > 0 ? 'kering' 
+                                                    : ($data?->menu_basah > 0 ? 'basah' : 'kering');
                                         @endphp
 
                                         <div class="col-12 mb-3 border-bottom pb-3 sekolah-row" 
@@ -210,7 +207,10 @@
 </div>
 
 <script>
-// Update summary per hari + preview di header accordion
+const paguKecil = {{ $paguKecilEfektif ?? 0 }};
+const paguBesar = {{ $paguBesarEfektif ?? 0 }};
+
+// Update summary per hari + preview
 function updateSummaryHarian(tanggal) {
     let totalKecil = 0;
     let totalBesar = 0;
@@ -223,11 +223,8 @@ function updateSummaryHarian(tanggal) {
         totalBesar += parseInt(el.value) || 0;
     });
 
-    const paguKecil = {{ $pagu->pagu_porsi_kecil }};
-    const paguBesar = {{ $pagu->pagu_porsi_besar }};
     const paguHarian = (totalKecil * paguKecil) + (totalBesar * paguBesar);
 
-    // Update summary di dalam collapse
     const summaryContainer = document.querySelector(`.summary-harian[data-tanggal="${tanggal}"]`);
     if (summaryContainer) {
         summaryContainer.querySelector('.total-kecil').textContent = totalKecil;
@@ -235,7 +232,6 @@ function updateSummaryHarian(tanggal) {
         summaryContainer.querySelector('.total-pagu').textContent = 'Rp ' + paguHarian.toLocaleString('id-ID');
     }
 
-    // Update preview di header accordion (saat collapse)
     const previewEl = document.querySelector(`.summary-preview[data-tanggal="${tanggal}"]`);
     if (previewEl) {
         previewEl.textContent = `Penerima: ${totalKecil + totalBesar} | Pagu: Rp ${paguHarian.toLocaleString('id-ID')}`;
@@ -245,11 +241,8 @@ function updateSummaryHarian(tanggal) {
 }
 
 function updateGrandTotal() {
-    const paguKecil = {{ $pagu->pagu_porsi_kecil }};
-    const paguBesar = {{ $pagu->pagu_porsi_besar }};
     let grandTotal = 0;
 
-    // Ambil semua tanggal unik dari semua summary-harian
     document.querySelectorAll('.summary-harian').forEach(container => {
         const tanggal = container.dataset.tanggal;
         let totalKecil = 0;
@@ -271,7 +264,7 @@ function updateGrandTotal() {
     }
 }
 
-// Event listener untuk semua input porsi
+// Event Listener
 document.querySelectorAll('.porsi').forEach(input => {
     input.addEventListener('input', function() {
         const tanggal = this.closest('.sekolah-row')?.dataset.hari;
@@ -279,29 +272,23 @@ document.querySelectorAll('.porsi').forEach(input => {
             updateSummaryHarian(tanggal);
         }
 
-        // Update total per sekolah
         const row = this.closest('.row');
         if (row) {
             const kecil = parseInt(row.querySelector('.kecil-input')?.value) || 0;
             const besar = parseInt(row.querySelector('.besar-input')?.value) || 0;
             row.querySelector('.total').value = kecil + besar;
 
-            // Update pagu sekolah secara real-time
-            const paguKecil = {{ $pagu->pagu_porsi_kecil }};
-            const paguBesar = {{ $pagu->pagu_porsi_besar }};
             const paguSekolah = (kecil * paguKecil) + (besar * paguBesar);
             row.querySelector('.pagu-sekolah').value = 'Rp ' + paguSekolah.toLocaleString('id-ID');
         }
     });
 });
 
-// Inisialisasi semua summary saat load (termasuk preview header)
+// Inisialisasi
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.summary-harian').forEach(container => {
         const tanggal = container.dataset.tanggal;
-        if (tanggal) {
-            updateSummaryHarian(tanggal);
-        }
+        if (tanggal) updateSummaryHarian(tanggal);
     });
 });
 </script>

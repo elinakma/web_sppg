@@ -11,6 +11,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -66,10 +67,11 @@ export default function LoginScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Masukkan Email"
+            placeholderTextColor="#6c757d"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
-              if (errorMessage) setErrorMessage(''); // clear error saat ketik
+              if (errorMessage) setErrorMessage('');
             }}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -81,13 +83,24 @@ export default function LoginScreen({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="Masukkan Kata Sandi"
+            placeholderTextColor="#6c757d"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
               if (errorMessage) setErrorMessage('');
             }}
-            secureTextEntry
+            secureTextEntry={!showPassword}
           />
+          <TouchableOpacity 
+            onPress={() => setShowPassword(!showPassword)}
+            style={styles.eyeIcon}
+          >
+            <Ionicons 
+              name={showPassword ? "eye-outline" : "eye-off-outline"} 
+              size={22} 
+              color="#6c757d" 
+            />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
@@ -150,6 +163,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 45,
+    color: '#212529',
   },
   forgotBtn: {
     alignSelf: 'flex-end',

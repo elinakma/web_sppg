@@ -15,11 +15,6 @@ class NotifikasiController extends Controller
             ->latest()
             ->paginate(20);
 
-        // Tandai semua belum dibaca → dibaca saat halaman dibuka
-        Notifikasi::untukUser(Auth::id())
-            ->belumDibaca()
-            ->update(['dibaca' => true, 'waktu_dibaca' => now()]);
-
         return view('admin.notifikasi.index', compact('notifikasi'));
     }
 
@@ -34,7 +29,7 @@ class NotifikasiController extends Controller
                 'id'       => $n->id,
                 'judul'    => $n->judul,
                 'pesan'    => $n->pesan,
-                'is_read'  => $n->dibaca,
+                'dibaca'  => $n->dibaca,
                 'waktu'    => $n->waktuRelatif(),
                 'url'      => $n->url ?? '#',
                 'tipe'     => $n->tipe,

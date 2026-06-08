@@ -98,8 +98,8 @@ class Notifikasi extends Model
 
     public function waktuRelatif(): string
     {
-        $diff = now()->diffInSeconds($this->created_at);
-
+        $diff = abs(now()->diffInSeconds($this->created_at));
+        
         if ($diff < 60)     return 'Baru saja';
         if ($diff < 3600)   return (int)($diff / 60)   . ' menit lalu';
         if ($diff < 86400)  return (int)($diff / 3600)  . ' jam lalu';

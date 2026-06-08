@@ -648,6 +648,17 @@
         .modal-dialog-scrollable .modal-content {
             overflow: hidden;
         }
+        .btn-wa {
+            background-color: #e8f5e9;
+            color: #25D366;
+            border: 1px solid #c8e6c9;
+            transition: all 0.2s ease;
+        }
+        .btn-wa:hover {
+            background-color: #25D366;
+            color: #fff;
+            border-color: #25D366;
+        }
     </style>
 </head>
 <body class="bg-light">

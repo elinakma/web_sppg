@@ -60,6 +60,7 @@
                             <th>Telepon</th>
                             <th>Role</th>
                             <th>Status</th>
+                            <th width="100">Kirim APK</th>
                             <th width="180">Aksi</th>
                         </tr>
                     </thead>
@@ -83,6 +84,25 @@
                                 <span class="badge status-badge d-inline-block {{ $user->status === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ $user->status }}
                                 </span>
+                            </td>
+                            <td class="text-center">
+                                @if($user->telepon)
+                                    @php
+                                        $nomorWA = '62' . ltrim($user->telepon, '0');
+                                        $linkAPK = 'https://drive.google.com/drive/folders/1SGdkDW41UNo5PObMdP8l1nSvxahsEko9?usp=sharing';
+                                        $pesan = urlencode("Halo {$user->name}, berikut link instalasi aplikasi mobile:\n{$linkAPK}");
+                                    @endphp
+                                    <div class="d-flex justify-content-center">
+                                        <a href="https://wa.me/{{ $nomorWA }}?text={{ $pesan }}"
+                                        target="_blank"
+                                        class="soft-btn btn-wa"
+                                        title="Kirim Link APK via WhatsApp">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
+                                    </div>
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
                             </td>
 
                             <td class="text-center">
@@ -200,11 +220,11 @@
                                 <label class="form-label">Role</label>
                                 <select name="role" class="form-select @error('role') is-invalid @enderror" required>
                                     <option value="">Pilih Role</option>
-                                    <option value="Admin" {{ old('role') == 'Admin' ? 'selected' : '' }}>Admin</option>
+                                    <option value="Admin" {{ old('role') == 'Admin' ? 'selected' : '' }}>Admin/Kepala SPPG</option>
                                     <option value="Aslap" {{ old('role') == 'Aslap' ? 'selected' : '' }}>Asisten Lapangan</option>
                                     <option value="Gizi" {{ old('role') == 'Gizi' ? 'selected' : '' }}>Ahli Gizi</option>
                                     <option value="Akuntan" {{ old('role') == 'Akuntan' ? 'selected' : '' }}>Akuntansi</option>
-                                    <option value="Driver" {{ old('role') == 'Driver' ? 'selected' : '' }}>Distribusi</option>
+                                    <option value="Driver" {{ old('role') == 'Driver' ? 'selected' : '' }}>Driver</option>
                                 </select>
                                 @error('role')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -285,11 +305,11 @@
                                 <label class="form-label">Role</label>
                                 <select name="role" class="form-select shadow-sm @error('role') is-invalid @enderror" required>
                                     <option value="">Pilih Role</option>
-                                    <option value="Admin">Admin</option>
+                                    <option value="Admin">Admin/Kepala SPPG</option>
                                     <option value="Aslap">Asisten Lapangan</option>
                                     <option value="Gizi">Ahli Gizi</option>
                                     <option value="Akuntan">Akuntansi</option>
-                                    <option value="Driver">Distribusi</option>
+                                    <option value="Driver">Driver</option>
                                 </select>
                                 @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>

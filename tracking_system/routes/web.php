@@ -85,9 +85,6 @@ Route::middleware('auth', 'verified')->group(function () {
             Route::delete('/assign/{pengiriman}', [MapController::class, 'destroyPengiriman'])->name('assign.destroy');
         });
 
-        // Map / Tracking
-        Route::get('/map', [MapController::class, 'index'])->name('map.index');
-
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
         Route::get('/rekap/cetak/{id}', [RekapController::class, 'cetakRekap'])->name('rekap.cetak');
 

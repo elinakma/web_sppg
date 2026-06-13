@@ -50,8 +50,8 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('admin.map.index') }}"
-                       class="nav-link {{ request()->routeIs('admin.map.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.monitoring.map') }}"
+                       class="nav-link {{ request()->routeIs('admin.monitoring.*') ? 'active' : '' }}">
                         <i class="bi bi-pin-map me-2"></i>
                         <span class="menu-text">Kelola Pemantauan</span>
                     </a>

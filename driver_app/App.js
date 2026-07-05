@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SecureStore from 'expo-secure-store';
 
-import SplashScreenComponent from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import DistribusiScreen from './screens/MainTabs/DistribusiScreen';
@@ -49,15 +49,41 @@ function MainTabs() {
 }
 
 export default function App() {
+  const [appReady, setAppReady] = useState(false);
+  const [initialRoute, setInitialRoute] = useState('Login');
+
   useEffect(() => {
-    // Sembunyikan native splash begitu JS sudah siap
-    SplashScreen.hideAsync();
+    const prepare = async () => {
+      try {
+        const token    = await SecureStore.getItemAsync('authToken');
+        const userRole = await SecureStore.getItemAsync('userRole');
+
+        await new Promise(resolve => setTimeout(resolve, 2000)); // timer splash
+
+        if (token && userRole) {
+          if (userRole === 'Driver') setInitialRoute('Main');
+          else if (userRole === 'Aslap') setInitialRoute('AslapMain');
+        }
+      } catch (_) {
+        setInitialRoute('Login');
+      } finally {
+        await SplashScreen.hideAsync();
+        setAppReady(true);
+      }
+    };
+
+    prepare();
   }, []);
+
+  if (!appReady) return null; 
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreenComponent} />
+      <Stack.Navigator 
+        initialRouteName={initialRoute}
+        screenOptions={{ headerShown: false }}
+      >
+        {/* Hapus Screen "Splash" karena sudah tidak dipakai */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="AslapMain" component={AslapTabs} />

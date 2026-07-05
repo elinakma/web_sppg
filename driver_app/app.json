@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/ikon-sppg.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     
     "splash": {
       "image": "./assets/ikon-sppg.png",
@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/ikon-sppg.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "package": "com.elinakma.driver_app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
@@ -57,7 +57,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/35a3af08-bd2d-4c3a-a68b-2321c7b283da"
+      "enabled": false
     }
   }
 }

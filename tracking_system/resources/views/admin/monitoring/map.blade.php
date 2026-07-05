@@ -180,8 +180,7 @@
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#assignModal"
                                                 data-driver-id="{{ $driver->id }}"
-                                                data-driver-name="{{ $driver->name }}"
-                                                data-assigned-sekolah="{{ json_encode($driver->assignedSekolah->pluck('id')->toArray()) }}">
+                                                data-driver-name="{{ $driver->name }}">
                                             <i class="bi bi-gear"></i>
                                         </button>
                                     </div>
@@ -293,7 +292,7 @@
     </div>
 
     <!-- Modal Atur Sekolah -->
-    <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="assignModal" tabindex="-1" aria-modal="true" role="dialog">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-0">
@@ -306,7 +305,7 @@
 
                 <div class="modal-divider"></div>
 
-                <form action="{{ route('admin.monitoring.assign.store') }}" method="POST">
+                <form id="assignForm" action="{{ route('admin.monitoring.assign.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="driver_id" id="modalDriverId">
 
@@ -364,13 +363,27 @@
                         <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
                             Batal
                         </button>
-                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                        <button type="submit" id="btnSubmit" class="btn btn-primary rounded-pill px-4 shadow-sm"
                             style="background: linear-gradient(135deg, #1e3a8a, #2563eb); border: none;">
-                            Simpan
+                            <span class="btn-text">Simpan Perubahan</span>
+                            <span class="spinner-border spinner-border-sm d-none" id="loadingSpinner" role="status"></span>
                         </button>
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+    
+    <!-- Success Overlay -->
+    <div id="successOverlay" class="success-overlay d-none">
+        <div class="success-card">
+            <div class="success-icon">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <h5 class="fw-bold mt-3">Sukses</h5>
+            <p class="text-muted mb-0" id="successMessage">
+                Sekolah berhasil diassign ke driver.
+            </p>
         </div>
     </div>
 </div>
@@ -453,14 +466,10 @@ async function updateAll() {
 
 async function buildRoadRoute(rawCoords) {
     if (rawCoords.length < 2) return rawCoords;
- 
-    // Signature untuk cache: awal|akhir|jumlah titik
     const f   = rawCoords[0];
     const l   = rawCoords[rawCoords.length - 1];
     const sig = `${f[0].toFixed(5)},${f[1].toFixed(5)}|${l[0].toFixed(5)},${l[1].toFixed(5)}|${rawCoords.length}`;
     if (routeCache[sig]) return routeCache[sig];
- 
-    // Sampling max 25 waypoint (temenmu sampling max 50 ke ORS)
     const MAX_WP  = 25;
     let waypoints = rawCoords;
     if (waypoints.length > MAX_WP) {
@@ -474,29 +483,22 @@ async function buildRoadRoute(rawCoords) {
     }
  
     try {
-        // OSRM format: longitude,latitude dipisah ;
         const coordStr = waypoints.map(c => `${c[1]},${c[0]}`).join(';');
         const url      = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`;
- 
         const res  = await fetch(url, { signal: AbortSignal.timeout(7000) });
         const data = await res.json();
  
         if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length) {
-            // Konversi [lng, lat] → [lat, lng] untuk Leaflet
             const road = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
             routeCache[sig] = road;
             return road;
         }
     } catch (_) {}
- 
-    // Fallback: raw GPS coords jika OSRM gagal
     return rawCoords;
 }
 
 async function updateTrackingLayer(driver) {
     const uid = driver.id;
- 
-    // Driver offline → hapus semua layer (sama seperti temenmu)
     if (!driver.is_online) {
         if (driverEndMarker[uid])   { map.removeLayer(driverEndMarker[uid]);   delete driverEndMarker[uid]; }
         if (driverStartMarker[uid]) { map.removeLayer(driverStartMarker[uid]); delete driverStartMarker[uid]; }
@@ -508,21 +510,15 @@ async function updateTrackingLayer(driver) {
     try {
         const res    = await fetch(`/api/drivers/${uid}/history`);
         const points = await res.json();
- 
         if (!points || points.length < 1) return;
- 
         points.sort((a, b) => new Date(a.tracked_at) - new Date(b.tracked_at));
- 
         const rawCoords = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
         const lastIdx   = rawCoords.length - 1;
- 
-        // Rute jalan yang sudah di-snap ke jalan asli dari OSRM (biru) atau fallback ke raw GPS (tanpa snap)
         let roadCoords = rawCoords;
         if (rawCoords.length >= 2) {
             roadCoords = await buildRoadRoute(rawCoords);
         }
  
-        // Polyline jalur perjalanan (biru)
         if (roadCoords.length >= 2) {
             if (driverPolylines[uid]) {
                 driverPolylines[uid].setLatLngs(roadCoords);
@@ -538,12 +534,10 @@ async function updateTrackingLayer(driver) {
             }
         }
  
-        // Checkpoint dots untuk titik raw GPS (orange)
         if (!driverPoints[uid]) {
             driverPoints[uid] = L.layerGroup().addTo(map);
         }
         driverPoints[uid].clearLayers();
- 
         rawCoords.forEach((c, idx) => {
             if (idx === 0 || idx === lastIdx) return;
  
@@ -578,8 +572,7 @@ async function updateTrackingLayer(driver) {
  
             dot.addTo(driverPoints[uid]);
         });
- 
-        // Marker titik awal - hijau
+
         if (!driverStartMarker[uid]) {
             driverStartMarker[uid] = L.marker(rawCoords[0], { icon: iconGreen() })
                 .addTo(map)
@@ -592,8 +585,7 @@ async function updateTrackingLayer(driver) {
         } else {
             driverStartMarker[uid].setLatLng(rawCoords[0]);
         }
- 
-        // Marker posisi sekarang - kuning
+
         if (!driver.location) return;
  
         const loc   = driver.location;
@@ -614,7 +606,6 @@ async function updateTrackingLayer(driver) {
         if (driverEndMarker[uid]) {
             driverEndMarker[uid].setPopupContent(buildPopup(driver, stats, loc.created_at, address));
         }
- 
     } catch (_) {}
 }
 
@@ -658,49 +649,140 @@ function buildPopup(driver, stats, lastUpdated, address) {
     `;
 }
 
-const assignedSekolahRaw = @json($assignedSekolah);
-const assignedSekolah = {};
+// Assigned Sekolah
+const assignedUrl = "{{ route('admin.monitoring.assigned.sekolah') }}";
 
-// Konversi key dan value assignedSekolah menjadi integer
-Object.keys(assignedSekolahRaw).forEach(driverId => {
-    assignedSekolah[driverId] = assignedSekolahRaw[driverId].map(id => parseInt(id));
-});
+document.getElementById('assignModal').addEventListener('show.bs.modal', async function (event) {
+    // Ambil driver id dari tombol yang di-klik
+    const btn        = event.relatedTarget;
+    const driverId   = parseInt(btn.getAttribute('data-driver-id'));
+    const driverName = btn.getAttribute('data-driver-name');
 
-// Konversi seluruh allAssigned menjadi array of integer
-const allAssigned = (@json($allAssignedSekolah) || []).map(id => parseInt(id));
- 
-document.querySelectorAll('[data-bs-target="#assignModal"]').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const driverId   = parseInt(this.getAttribute('data-driver-id')); // Konversi ke Int
-        const driverName = this.getAttribute('data-driver-name');
- 
-        document.getElementById('modalDriverId').value         = driverId;
-        document.getElementById('modalDriverName').textContent = driverName;
- 
-        const driverAssigned = assignedSekolah[driverId] || [];
- 
+    document.getElementById('modalDriverId').value         = driverId;
+    document.getElementById('modalDriverName').textContent = driverName;
+
+    // Reset semua checkbox ke loading state
+    document.querySelectorAll('.sekolah-checkbox').forEach(cb => {
+        cb.checked  = false;
+        cb.disabled = true;
+        cb.closest('.sekolah-card').classList.remove('checked', 'disabled');
+        cb.closest('.sekolah-card').querySelector('.conflict-badge').classList.add('d-none');
+    });
+
+    try {
+        const res = await fetch(assignedUrl, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        });
+
+        if (!res.ok) {
+            document.querySelectorAll('.sekolah-checkbox').forEach(cb => cb.disabled = false);
+            return;
+        }
+
+        const data = await res.json();
+
+        const assignedSekolah = {};
+        Object.keys(data.assignedSekolah).forEach(id => {
+            assignedSekolah[id] = data.assignedSekolah[id].map(v => parseInt(v));
+        });
+
+        const driverAssigned      = assignedSekolah[String(driverId)] || [];
+        const allAssigned         = (data.allAssignedSekolah || []).map(v => parseInt(v));
+        const allAssignedByOthers = allAssigned.filter(id => !driverAssigned.includes(id));
+
         document.querySelectorAll('.sekolah-checkbox').forEach(cb => {
-            const sekolahId = parseInt(cb.value); // Sudah berupa Int
+            const sekolahId = parseInt(cb.value);
             const card      = cb.closest('.sekolah-card');
             const badge     = card.querySelector('.conflict-badge');
- 
-            // Reset state default awal modal dibuka
+
             cb.checked  = false;
             cb.disabled = false;
             card.classList.remove('checked', 'disabled');
             badge.classList.add('d-none');
- 
-            // Cek status kepemilikan sekolah
+
             if (driverAssigned.includes(sekolahId)) {
                 cb.checked = true;
                 card.classList.add('checked');
-            } else if (allAssigned.includes(sekolahId)) {
+            } else if (allAssignedByOthers.includes(sekolahId)) {
                 cb.disabled = true;
                 card.classList.add('disabled');
-                badge.classList.remove('d-none'); // Badge "Sudah dipakai" akan muncul
+                badge.classList.remove('d-none');
             }
         });
-    });
+
+    } catch (err) {
+        console.error('Gagal fetch:', err);
+        document.querySelectorAll('.sekolah-checkbox').forEach(cb => cb.disabled = false);
+    }
 });
+
+document.getElementById('assignForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('btnSubmit');
+    const btnText = btn.querySelector('.btn-text');
+    const spinner = document.getElementById('loadingSpinner');
+
+    btn.disabled = true;
+    btnText.classList.add('d-none');
+    spinner.classList.remove('d-none');
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showSuccessOverlay(result.message || 'Sekolah berhasil diassign!');
+            
+            bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            alert(result.message || 'Terjadi kesalahan saat menyimpan.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Gagal terhubung ke server. Coba lagi.');
+    } finally {
+        btn.disabled = false;
+        btnText.classList.remove('d-none');
+        spinner.classList.add('d-none');
+    }
+});
+
+function showSuccessOverlay(message) {
+    const overlay = document.getElementById('successOverlay');
+    const msgEl = document.getElementById('successMessage');
+    
+    if (message) msgEl.textContent = message;
+    
+    overlay.classList.remove('d-none');
+    setTimeout(() => {
+        overlay.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        overlay.classList.add('hide');
+        setTimeout(() => {
+            overlay.classList.add('d-none');
+            overlay.classList.remove('show', 'hide');
+        }, 500);
+    }, 3000);
+}
 </script>
 @endsection

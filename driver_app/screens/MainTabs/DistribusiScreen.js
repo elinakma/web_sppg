@@ -66,7 +66,6 @@ export default function DistribusiScreen() {
   // Start Tracking 
   const handleStartTracking = async () => {
     try {
-      // Request permissions
       const foreground = await Location.requestForegroundPermissionsAsync();
       if (foreground.status !== 'granted') {
         Alert.alert('Izin Ditolak', 'Aplikasi membutuhkan izin lokasi.');
@@ -83,7 +82,7 @@ export default function DistribusiScreen() {
 
       await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
         accuracy: Location.Accuracy.High,
-        timeInterval: 10000,        // setiap 10 detik
+        timeInterval: 10000,
         distanceInterval: 20,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
@@ -101,8 +100,7 @@ export default function DistribusiScreen() {
       Alert.alert('Gagal Memulai Tracking', error.message || 'Terjadi kesalahan');
     }
   };
-
-  // Stop Tracking
+  
   const handleStopTracking = async () => {
     Alert.alert(
       'Stop Tracking?',
@@ -301,7 +299,7 @@ const styles = StyleSheet.create({
     fontSize:22,
     fontWeight:"bold",
     textAlign:"center",
-    marginVertical:16
+    marginVertical:16, color: '#000' 
   },
 
   progressCard:{
@@ -313,11 +311,11 @@ const styles = StyleSheet.create({
   },
 
   progressTitle:{
-    fontWeight:"600"
+    fontWeight:"600", color: '#000' 
   },
 
   progressText:{
-    marginVertical:6
+    marginVertical:6, color: '#000' 
   },
 
   progressBar:{
@@ -348,7 +346,7 @@ const styles = StyleSheet.create({
   schoolName:{
     marginLeft:10,
     fontWeight:"600",
-    fontSize:16
+    fontSize:16, color: '#000' 
   },
 
   row:{
@@ -358,7 +356,7 @@ const styles = StyleSheet.create({
   },
 
   info:{
-    marginLeft:6
+    marginLeft:6, color: '#000' 
   },
 
   badge:{

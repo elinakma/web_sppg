@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 30,
     paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   leftGroup:    { flexDirection: 'row', alignItems: 'center' },
   logo:         { width: 45, height: 45, marginRight: 10 },
-  appName:      { fontSize: 16, fontWeight: '600' },
+  appName:      { fontSize: 16, fontWeight: '600', color: '#000' },
   subName:      { fontSize: 14, color: '#555' },
 
   notifButton:  { position: 'relative', padding: 8 },
@@ -160,14 +160,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 20, padding: 20,
     borderRadius: 16, marginBottom: 20, elevation: 4,
   },
-  welcomeText:  { fontSize: 16 },
+  welcomeText:  { fontSize: 16, color: '#000' },
 
   sectionCard: {
     backgroundColor: '#fff',
     marginHorizontal: 20, padding: 20,
     borderRadius: 16, marginBottom: 20, elevation: 4,
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4, color: '#000' },
   sectionSub:   { color: '#666', marginBottom: 14 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -179,6 +179,6 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12,
     justifyContent: 'center', alignItems: 'center', marginBottom: 10,
   },
-  cardValue:    { fontSize: 22, fontWeight: 'bold' },
+  cardValue:    { fontSize: 22, fontWeight: 'bold', color: '#000' },
   cardTitle:    { fontSize: 13, marginTop: 4, color: '#555' },
 });

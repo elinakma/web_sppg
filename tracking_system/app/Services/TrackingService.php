@@ -51,7 +51,7 @@ class TrackingService
             $lastPoint->latitude, $lastPoint->longitude,
             $latitude, $longitude
         );
-        $secondsElapsed = now()->diffInSeconds($lastPoint->tracked_at);
+        $secondsElapsed = abs(now()->diffInSeconds($lastPoint->tracked_at));
 
         // ── Noise filter: terlalu kecil → buang ──────────────────────────────
         if ($distance < self::NOISE_THRESHOLD_METERS) {

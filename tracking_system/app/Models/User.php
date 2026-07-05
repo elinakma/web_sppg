@@ -90,6 +90,7 @@ class User extends Authenticatable
     public function assignedSekolah()
     {
         return $this->belongsToMany(Sekolah::class, 'pengiriman', 'driver_id', 'sekolah_id')
+                    ->withTrashed()
                     ->withTimestamps();
     }
 }

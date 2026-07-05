@@ -18,6 +18,8 @@ export default function AslapMonitoringScreen({ navigation }) {
   const intervalRef = useRef(null);
   const routeCache = useRef({});
   const addressCache = useRef({});
+  const mapReadyRef = useRef(false);
+  const driversRef = useRef([]);
 
   // ================== GET ADDRESS ==================
   const getAddress = async (lat, lng) => {
@@ -45,6 +47,18 @@ export default function AslapMonitoringScreen({ navigation }) {
     return 'Alamat tidak dapat diambil';
   };
 
+  const injectToMap = (processed) => {
+    const active = processed.filter(d => d.is_online && d.history?.length > 0);
+    if (active.length > 0 && webRef.current && mapReadyRef.current) {
+      webRef.current.injectJavaScript(`
+        if (window.updateDrivers) {
+          window.updateDrivers(${JSON.stringify(active)});
+        }
+        true;
+      `);
+    }
+  };
+
   // ================== FETCH DATA ==================
   const fetchAll = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -61,7 +75,7 @@ export default function AslapMonitoringScreen({ navigation }) {
           if (driver.is_online && driver.location) {
             rawHistory = await getDriverHistory(driver.id);
             if (rawHistory.length >= 2) {
-              snappedRoute = await processRoute(rawHistory);
+              snappedRoute = await processRoute(rawHistory, driver.id); // FIX #5: tambah driver.id
             } else {
               snappedRoute = rawHistory.map(p => ({
                 latitude: parseFloat(p.latitude),
@@ -79,17 +93,10 @@ export default function AslapMonitoringScreen({ navigation }) {
       );
 
       setDrivers(processed);
+      driversRef.current = processed;
 
-      if (webRef.current && mapReady && processed.length > 0) {
-        const active = processed.filter(d => d.is_online && d.history?.length > 0);
-        if (active.length > 0) {
-          webRef.current.injectJavaScript(`
-            if (window.updateDrivers) {
-              window.updateDrivers(${JSON.stringify(active)});
-            }
-          `);
-        }
-      }
+      injectToMap(processed);
+
     } catch (error) {
       console.error(error);
       if (error.response?.status === 401 || error.message?.includes('token')) {
@@ -105,15 +112,15 @@ export default function AslapMonitoringScreen({ navigation }) {
   };
 
   // ================== OSRM ==================
-  const processRoute = async (points) => {
+  const processRoute = async (points, driverId = 0) => {
     const rawCoords = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
-    const sig = `${rawCoords[0][0].toFixed(5)},${rawCoords[0][1].toFixed(5)}|${rawCoords.at(-1)[0].toFixed(5)},${rawCoords.at(-1)[1].toFixed(5)}`;
+    const sig = `${driverId}|${rawCoords[0][0].toFixed(5)},${rawCoords[0][1].toFixed(5)}|${rawCoords.at(-1)[0].toFixed(5)},${rawCoords.at(-1)[1].toFixed(5)}|${rawCoords.length}`;
 
     if (routeCache.current[sig]) return routeCache.current[sig];
 
     try {
       let waypoints = rawCoords;
-      const MAX_WP = 30;
+      const MAX_WP = 25;
       if (waypoints.length > MAX_WP) {
         const step = Math.ceil(waypoints.length / MAX_WP);
         waypoints = waypoints.filter((_, i) => i % step === 0 || i === waypoints.length - 1);
@@ -121,8 +128,16 @@ export default function AslapMonitoringScreen({ navigation }) {
 
       const coordStr = waypoints.map(([lat, lng]) => `${lng},${lat}`).join(';');
       const url = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson&steps=false`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7000);
 
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      let res;
+      try {
+        res = await fetch(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
+
       const data = await res.json();
 
       if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length > 1) {
@@ -134,7 +149,7 @@ export default function AslapMonitoringScreen({ navigation }) {
         return road;
       }
     } catch (e) {
-      console.warn('OSRM gagal, fallback ke raw GPS');
+      console.warn('OSRM gagal, fallback ke raw GPS:', e.message);
     }
 
     return rawCoords.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
@@ -146,12 +161,18 @@ export default function AslapMonitoringScreen({ navigation }) {
     return () => clearInterval(intervalRef.current);
   }, []);
 
+  useEffect(() => {
+    if (!mapReady) return;
+    mapReadyRef.current = true;
+    if (driversRef.current.length > 0) {
+      injectToMap(driversRef.current);
+    }
+  }, [mapReady]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchAll();
   };
-
-  const activeDrivers = drivers.filter(d => d.is_online && d.location && d.history?.length > 0);
 
   if (loading && drivers.length === 0) {
     return (
@@ -179,6 +200,9 @@ export default function AslapMonitoringScreen({ navigation }) {
             javaScriptEnabled={true}
             onLoad={() => setMapReady(true)}
             onError={() => setErrorMsg('Gagal memuat peta')}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
+            onTouchStart={(e) => e.stopPropagation()}
           />
         </View>
 
@@ -196,7 +220,11 @@ export default function AslapMonitoringScreen({ navigation }) {
                 </View>
                 {driver.sedang_berjalan !== undefined && (
                   <View style={[styles.trackingBadge, { backgroundColor: driver.sedang_berjalan ? '#dcfce7' : '#f3f4f6' }]}>
-                    <Icon name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'} size={14} color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'} />
+                    <Icon
+                      name={driver.sedang_berjalan ? 'truck-delivery' : 'pause-circle'}
+                      size={14}
+                      color={driver.sedang_berjalan ? '#16a34a' : '#6b7280'}
+                    />
                     <Text style={[styles.trackingText, { color: driver.sedang_berjalan ? '#16a34a' : '#6b7280' }]}>
                       {driver.sedang_berjalan ? 'Sedang Berjalan' : 'Tidak Berjalan'}
                     </Text>
@@ -237,6 +265,7 @@ const getLeafletHTML = () => `
   <style>
     body { margin:0; padding:0; }
     #map { height: 100vh; width: 100%; }
+    .custom-marker { background: none; border: none; font-size: 24px; }
   </style>
 </head>
 <body>
@@ -247,43 +276,56 @@ const getLeafletHTML = () => `
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    let polylines = [];
-    let markers = [];
+    const driverLayers = {}; // FIX #7: track per-driver agar update smooth tanpa kedip
 
     window.updateDrivers = function(drivers) {
-      polylines.forEach(p => map.removeLayer(p));
-      markers.forEach(m => map.removeLayer(m));
-      polylines = [];
-      markers = [];
+      const incomingIds = new Set(drivers.map(d => String(d.id)));
+
+      // Hapus layer driver yang sudah tidak ada / offline
+      Object.keys(driverLayers).forEach(id => {
+        if (!incomingIds.has(id)) {
+          driverLayers[id].forEach(layer => map.removeLayer(layer));
+          delete driverLayers[id];
+        }
+      });
 
       drivers.forEach(driver => {
         if (!driver.history || driver.history.length < 1) return;
 
+        const id = String(driver.id);
         const coords = driver.history.map(p => [p.latitude, p.longitude]);
 
-        // Rute
-        const polyline = L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85 }).addTo(map);
-        polylines.push(polyline);
-
-        // Marker Start
-        if (coords.length > 0) {
-          const start = L.marker(coords[0], {
-            icon: L.divIcon({ html: '🚩', iconSize: [32, 32], className: 'custom-marker' })
-          }).addTo(map).bindPopup(\`Titik Awal - \${driver.name}\`);
-          markers.push(start);
+        // Hapus layer lama milik driver ini saja (bukan semua)
+        if (driverLayers[id]) {
+          driverLayers[id].forEach(layer => map.removeLayer(layer));
         }
+        driverLayers[id] = [];
 
-        // Marker End
+        // Polyline rute
+        const polyline = L.polyline(coords, { color: '#2563eb', weight: 6, opacity: 0.85 }).addTo(map);
+        driverLayers[id].push(polyline);
+
+        // Marker titik awal
+        const start = L.marker(coords[0], {
+          icon: L.divIcon({ html: '🚩', iconSize: [32, 32], className: 'custom-marker' })
+        }).addTo(map).bindPopup('Titik Awal - ' + driver.name);
+        driverLayers[id].push(start);
+
+        // Marker posisi terkini
         if (coords.length > 1) {
-          const end = L.marker(coords[coords.length-1], {
+          const end = L.marker(coords[coords.length - 1], {
             icon: L.divIcon({ html: '🚚', iconSize: [32, 32], className: 'custom-marker' })
-          }).addTo(map).bindPopup(\`Posisi Saat Ini - \${driver.name}\`);
-          markers.push(end);
+          }).addTo(map).bindPopup('Posisi Saat Ini - ' + driver.name);
+          driverLayers[id].push(end);
         }
       });
 
-      if (polylines.length > 0) {
-        map.fitBounds(L.featureGroup(polylines).getBounds(), { padding: [60, 60] });
+      // Fit bounds ke semua rute yang aktif
+      const allLayers = Object.values(driverLayers).flat();
+      if (allLayers.length > 0) {
+        try {
+          map.fitBounds(L.featureGroup(allLayers).getBounds(), { padding: [60, 60] });
+        } catch(_) {}
       }
     };
   </script>
@@ -292,32 +334,27 @@ const getLeafletHTML = () => `
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fb' },
-  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 16 },
-  subtitle: { fontSize: 18, fontWeight: '600', marginHorizontal: 16, marginVertical: 12 },
-
-  mapContainer: { 
-    height: 380, 
-    margin: 16, 
-    borderRadius: 16, 
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 16, color: '#000' },
+  subtitle: { fontSize: 18, fontWeight: '600', marginHorizontal: 16, marginVertical: 12, color: '#000' },
+  mapContainer: {
+    height: 380,
+    margin: 16,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#e5e7eb'
   },
   map: { flex: 1 },
-
   driverCard: { backgroundColor: '#fff', marginBottom: 12, padding: 16, borderRadius: 16, elevation: 2 },
   driverHeader: { flexDirection: 'row', alignItems: 'center' },
-  driverName: { fontSize: 17, fontWeight: '700' },
+  driverName: { fontSize: 17, fontWeight: '700', color: '#000'  },
   email: { color: '#64748b', fontSize: 13 },
   trackingBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, gap: 4 },
   trackingText: { fontSize: 12, fontWeight: '600' },
-
   locationText: { marginTop: 8, fontSize: 14, color: '#374151', lineHeight: 20 },
   stats: { marginTop: 6, fontSize: 13, color: '#0ea5e9' },
-
   errorBox: { margin: 16, padding: 16, backgroundColor: '#fee2e2', borderRadius: 12 },
   errorText: { color: '#dc2626', textAlign: 'center' },
-
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: '#6b7280' },
 });

@@ -15,12 +15,6 @@ class DriverLocationController extends Controller
     public function __construct(protected TrackingService $trackingService)
     {}
  
-    // ─── GET /api/drivers/locations ─────────────────────────────────────────
- 
-    /**
-     * Semua driver aktif beserta lokasi realtime terakhir mereka.
-     * Dipakai oleh admin monitoring map.
-     */
     public function allLocations(): JsonResponse
     {
         $drivers = User::where('role', 'Driver')
@@ -59,12 +53,7 @@ class DriverLocationController extends Controller
  
         return response()->json($drivers);
     }
- 
-    // ─── GET /api/drivers/{id}/history ──────────────────────────────────────
- 
-    /**
-     * History perjalanan driver hari ini (koordinat urut waktu).
-     */
+
     public function history(int $id): JsonResponse
     {
         $driver = User::where('role', 'Driver')
@@ -84,13 +73,6 @@ class DriverLocationController extends Controller
         return response()->json($points);
     }
  
-    // ─── POST /api/driver/location ───────────────────────────────────────────
- 
-    /**
-     * Driver mengirim lokasi baru (dari aplikasi mobile/GPS tracker).
-     * Menyimpan ke tabel `locations` (realtime) dan memproses ke
-     * `location_histories` (tracking cerdas).
-     */
     public function store(Request $request): JsonResponse
     {
         try {
@@ -108,7 +90,6 @@ class DriverLocationController extends Controller
             $lat = (float) $request->latitude;
             $lng = (float) $request->longitude;
 
-            // 1. Update lokasi realtime
             Location::updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -118,7 +99,6 @@ class DriverLocationController extends Controller
                 ]
             );
 
-            // 2. Proses intelligent tracking (INI YANG PENTING!)
             $result = $this->trackingService->processLocation($user->id, $lat, $lng);
 
             return response()->json([

@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 60,
+        paddingTop: 30,
         paddingBottom: 20,
         flexDirection: "row",
         justifyContent: "space-between",
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
 
     appName: {
         fontSize: 16,
-        fontWeight: "600"
+        fontWeight: "600", color: '#000' 
     },
     subName: {
         fontSize: 14,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
         elevation: 4
     },
     welcomeText: {
-        fontSize: 16
+        fontSize: 16, color: '#000' 
     },
     welcomeSub: {
         marginTop: 5,
@@ -163,10 +163,10 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: "bold"
+        fontWeight: "bold", color: '#000' 
     },
     sectionSub: {
-        marginBottom: 15
+        marginBottom: 15, color: '#000' 
     },
     grid: {
         flexDirection: "row",
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     },
     cardValue: {
         fontSize: 22,
-        fontWeight: "bold"
+        fontWeight: "bold", color: '#000' 
     },
     cardTitle: {
         fontSize: 13,

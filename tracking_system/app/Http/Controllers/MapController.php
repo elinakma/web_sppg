@@ -13,46 +13,46 @@ class MapController extends Controller
     public function index()
     {
         $today = now()->toDateString();
-
-        // ambil driver aktif
+    
         $drivers = User::where('role', 'Driver')
                     ->where('status', 'Aktif')
-                    ->with(['location' => function ($query) {
-                        $query->latest()->limit(1);
-                    }])
-                    ->with('pengiriman')
+                    ->with(['location' => fn($q) => $q->latest()->limit(1)])
+                    ->with('assignedSekolah')
                     ->get()
                     ->map(function ($driver) use ($today) {
                         $sedangBerjalan = DistribusiSekolah::where('pengirim', $driver->id)
                             ->whereDate('tanggal_harian', $today)
                             ->where('status', 'dikirim')
                             ->exists();
-
                         $driver->sedang_berjalan = $sedangBerjalan;
                         return $driver;
                     });
-
-        $sekolahSemua = Sekolah::withTrashed()
-                    ->orderBy('status', 'desc')
-                    ->orderBy('nama_sekolah')
-                    ->get();
-
-        $assignedSekolah = Pengiriman::whereIn('driver_id', $drivers->pluck('id'))
-                                ->get()
-                                ->groupBy('driver_id')
-                                ->map(fn($items) => $items->pluck('sekolah_id')->toArray())
-                                ->toArray();
-        
-        $allAssignedSekolah = Pengiriman::whereIn('driver_id', $drivers->pluck('id'))
+                    
+        $sekolahSemua = Sekolah::orderByRaw("FIELD(status, 'Aktif', 'Nonaktif')")
+                        ->orderBy('nama_sekolah')
+                        ->get();
+    
+        // Gunakan withTrashed pada relasi agar sekolah nonaktif ikut terhitung
+        $driverIds = $drivers->pluck('id');
+    
+        $assignedSekolah = Pengiriman::whereIn('driver_id', $driverIds)
+                            ->with(['sekolah' => fn($q) => $q->withTrashed()])
+                            ->get()
+                            ->groupBy('driver_id')
+                            ->map(fn($items) => $items->pluck('sekolah_id')->toArray())
+                            ->toArray();
+    
+        $allAssignedSekolah = Pengiriman::whereIn('driver_id', $driverIds)
                             ->pluck('sekolah_id')
                             ->toArray();
-
+    
         $this->sinkronisasiPengirimHariIni();
-
-        return view('admin.monitoring.map', compact('drivers', 'sekolahSemua', 'assignedSekolah', 'allAssignedSekolah'));
+    
+        return view('admin.monitoring.map', compact(
+            'drivers', 'sekolahSemua'
+        ));
     }
 
-    // Method baru: sinkronisasi pengirim ke distribusi hari ini
     private function sinkronisasiPengirimHariIni()
     {
         $today = now()->toDateString();
@@ -87,59 +87,104 @@ class MapController extends Controller
     public function storePengiriman(Request $request)
     {
         $request->validate([
-            'driver_id'     => 'required|exists:users,id',
-            'sekolah_ids'   => 'required|array',
-            'sekolah_ids.*' => 'exists:sekolah,id',
+            'driver_id' => 'required|exists:users,id',
+            'sekolah_ids' => 'nullable|array',
+            'sekolah_ids.*' => 'integer|exists:sekolah,id',
         ]);
-
-        $driverId   = $request->driver_id;
-        $sekolahIds = $request->sekolah_ids;
-
-        // Cek konflik HANYA dengan driver lain yang statusnya masih AKTIF
-        $conflicts = Pengiriman::whereIn('sekolah_id', $sekolahIds)
-                        ->where('driver_id', '!=', $driverId)
-                        ->whereHas('driver', function($query) {
-                            $query->where('status', 'Aktif');
-                        })
-                        ->exists();
-
-        if ($conflicts) {
-            return back()->withErrors(['sekolah_ids' => 'Beberapa sekolah sudah diassign ke driver aktif lain.']);
-        }
-        
-        // Ambil list sekolah lama milik driver ini sebelum dihapus (untuk update distribusi nanti)
-        $oldSekolahIds = Pengiriman::where('driver_id', $driverId)->pluck('sekolah_id')->toArray();
-
-        // Hapus assignment lama milik driver ini saja
-        Pengiriman::where('driver_id', $driverId)->delete();
-
-        foreach ($sekolahIds as $sekolahId) {
-            Pengiriman::create([
-                'driver_id'  => $driverId,
-                'sekolah_id' => $sekolahId,
-            ]);
-        }
-
-        // Update ke distribusi_sekolah hari ini
+    
+        $driverId = (int) $request->driver_id;
+        $sekolahIds = array_map('intval', $request->sekolah_ids ?? []);
+    
         $today = now()->toDateString();
-        
-        // 1. Set pengirim baru untuk sekolah yang dicentang
-        DistribusiSekolah::whereIn('id_sekolah', $sekolahIds)
+    
+        // Ambil assignment lama sebeum dihapus
+        $oldSekolahIds = Pengiriman::where('driver_id', $driverId)
+                            ->pluck('sekolah_id')
+                            ->toArray();
+    
+        Pengiriman::where('driver_id', $driverId)->delete();
+    
+        DistribusiSekolah::where('pengirim', $driverId)
             ->whereDate('tanggal_harian', $today)
             ->where('status', 'draf')
-            ->update(['pengirim' => $driverId]);
-
-        // 2. Opsional: Kosongkan sekolah lama yang tidak dicentang lagi oleh driver ini
-        $uncheckedSekolahIds = array_diff($oldSekolahIds, $sekolahIds);
-        if (!empty($uncheckedSekolahIds)) {
-            DistribusiSekolah::whereIn('id_sekolah', $uncheckedSekolahIds)
+            ->update(['pengirim' => null, 'status' => 'draf']);
+    
+        $conflicts = \DB::table('pengiriman')
+                        ->whereIn('sekolah_id', $sekolahIds)
+                        ->where('driver_id', '!=', $driverId)
+                        ->exists();
+    
+        if ($conflicts) {
+            // Rollback
+            $rollbackData = [];
+            foreach ($oldSekolahIds as $oldId) {
+                $rollbackData[] = [
+                    'driver_id' => $driverId,
+                    'sekolah_id' => $oldId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            if (!empty($rollbackData)) {
+                Pengiriman::insert($rollbackData);
+            }
+    
+            return response()->json([
+                'message' => 'Beberapa sekolah sudah diassign ke driver aktif lain.'
+            ], 422);
+        }
+    
+        $newAssignments = [];
+        foreach ($sekolahIds as $sekolahId) {
+            $newAssignments[] = [
+                'driver_id' => $driverId,
+                'sekolah_id' => $sekolahId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+    
+        if (!empty($newAssignments)) {
+            Pengiriman::insert($newAssignments);
+        }
+    
+        // Update distribusi
+        if (!empty($sekolahIds)) {
+            DistribusiSekolah::whereIn('id_sekolah', $sekolahIds)
                 ->whereDate('tanggal_harian', $today)
                 ->where('status', 'draf')
-                ->update(['pengirim' => null]);
+                ->update(['pengirim' => $driverId]);
         }
+    
+        return response()->json([
+            'message' => 'Sekolah berhasil dibagikan ke driver.',
+            'driver_id' => $driverId
+        ]);
+    }
 
-        return redirect()->route('admin.monitoring.map')
-                        ->with('success', 'Sekolah berhasil dibagikan ke driver.');
+    public function getAssignedSekolah()
+    {
+        $driverIds = User::where('role', 'Driver')->where('status', 'Aktif')->pluck('id');
+    
+        $assignedRaw = Pengiriman::whereIn('driver_id', $driverIds)
+                        ->get()
+                        ->groupBy('driver_id');
+    
+        // Cast key ke integer eksplisit
+        $assignedSekolah = [];
+        foreach ($assignedRaw as $driverId => $items) {
+            $assignedSekolah[(int) $driverId] = $items->pluck('sekolah_id')->map(fn($id) => (int) $id)->toArray();
+        }
+    
+        $allAssignedSekolah = Pengiriman::whereIn('driver_id', $driverIds)
+                            ->pluck('sekolah_id')
+                            ->map(fn($id) => (int) $id)
+                            ->toArray();
+    
+        return response()->json([
+            'assignedSekolah'    => $assignedSekolah,
+            'allAssignedSekolah' => $allAssignedSekolah,
+        ]);
     }
 
     public function destroyPengiriman(Pengiriman $pengiriman)

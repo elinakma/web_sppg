@@ -411,6 +411,51 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json(['success' => true, 'distribusi' => $distribusi]);
     });
 
+    Route::get('/aslap/distribusi/{id}/detail', function (Request $request, $id) {
+        $user = $request->user();
+        if ($user->role !== 'Aslap') return response()->json(['error' => 'Unauthorized'], 403);
+    
+        $distribusi = \App\Models\Distribusi::findOrFail($id);
+    
+        $items = DistribusiSekolah::where('id_distribusi', $id)
+            ->with(['sekolah', 'driverPengirim'])
+            ->orderBy('tanggal_harian')
+            ->orderBy('id_sekolah')
+            ->get()
+            ->map(fn($item) => [
+                'id'           => $item->id,
+                'tanggal'      => $item->tanggal_harian,
+                'nama_sekolah' => $item->sekolah?->nama_sekolah ?? '-',
+                'driver'       => $item->driverPengirim?->name ?? '-',
+                'status'       => $item->status,
+                'waktu'        => $item->waktu,
+                'porsi_kecil'  => $item->porsi_kecil_harian,
+                'porsi_besar'  => $item->porsi_besar_harian,
+                'total'        => ($item->porsi_kecil_harian ?? 0) + ($item->porsi_besar_harian ?? 0),
+                'pagu'         => $item->pagu_harian_sekolah,
+            ]);
+    
+        $summaryPerTanggal = $items->groupBy('tanggal')->map(fn($group) => [
+            'tanggal'       => $group->first()['tanggal'],
+            'total_porsi'   => $group->sum('total'),
+            'selesai'       => $group->where('status', 'selesai')->count(),
+            'total_sekolah' => $group->count(),
+            'status'        => $group->every(fn($i) => $i['status'] === 'selesai') ? 'Selesai'
+                             : ($group->contains(fn($i) => in_array($i['status'], ['dikirim', 'selesai'])) ? 'Diproses' : 'Draf'),
+        ])->values();
+    
+        return response()->json([
+            'success'             => true,
+            'distribusi'          => [
+                'id'            => $distribusi->id,
+                'tanggal_awal'  => $distribusi->tanggal_awal,
+                'tanggal_akhir' => $distribusi->tanggal_akhir,
+            ],
+            'items'               => $items,
+            'summary_per_tanggal' => $summaryPerTanggal,
+        ]);
+    });
+
     Route::get('/aslap/drivers/locations', [DriverLocationController::class, 'allLocations'])
          ->name('api.aslap.drivers.locations');
  

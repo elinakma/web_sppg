@@ -249,6 +249,20 @@ export const getAslapDistribusi = async () => {
   return response.data.distribusi || [];
 };
 
+export const getAslapDistribusiDetail = async (id) => {
+    const token = await SecureStore.getItemAsync('authToken');
+    if (!token) throw new Error('No token found');
+
+    const response = await axios.get(`${API_BASE_URL}/aslap/distribusi/${id}/detail`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+        },
+    });
+
+    return response.data;
+};
+
 export const getAslapNotifikasiLatest = async () => {
   const token = await SecureStore.getItemAsync('authToken');
   if (!token) throw new Error('No token found');

@@ -79,13 +79,13 @@ export default function TrackingScreen() {
 
             <View style={styles.grid}>
             {dashboardStats.map((item, index) => (
-                <TouchableOpacity key={index} style={styles.card}>
+                <View key={index} style={styles.card}>
                 <View style={[styles.iconBox, { backgroundColor: item.color + "20" }]}>
                     <Ionicons name={item.icon} size={24} color={item.color} />
                 </View>
                 <Text style={styles.cardValue}>{item.value}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                </TouchableOpacity>
+                </View>
             ))}
             </View>
         </View>
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 30,
+        paddingTop: 50,
         paddingBottom: 20,
         flexDirection: "row",
         justifyContent: "space-between",

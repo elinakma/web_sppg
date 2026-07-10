@@ -7,6 +7,7 @@ import AslapDashboardScreen from './AslapDashboardScreen';
 import AslapMonitoringScreen from './AslapMonitoringScreen';
 import AslapDistribusiScreen from './AslapDistribusiScreen';
 import AslapNotifikasiScreen from './AslapNotifikasiScreen';
+import AslapDistribusiDetailScreen from './AslapDistribusiDetailScreen';
 import ProfilScreen from '../MainTabs/ProfilScreen';
 
 const Stack = createNativeStackNavigator();
@@ -53,6 +54,12 @@ export default function AslapTabs() {
         name="MainTabs" 
         component={MainTabNavigator} 
         options={{ headerShown: false }} 
+      />
+
+      <Stack.Screen
+        name="AslapDistribusiDetail"
+        component={AslapDistribusiDetailScreen}
+        options={{ headerShown: false }}
       />
       
       {/* Screen Notifikasi ditaruh di sini agar bisa full screen dan punya tombol back otomatis */}

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  ActivityIndicator, RefreshControl
+  ActivityIndicator, RefreshControl, TouchableOpacity
 } from 'react-native';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { getAslapDistribusi, getAslapPenugasanDriver } from '../../utils/api';
 
-export default function AslapDistribusiScreen() {
+export default function AslapDistribusiScreen({ navigation }) {
   const [distribusi, setDistribusi]   = useState([]);
   const [drivers, setDrivers]         = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -84,28 +84,34 @@ export default function AslapDistribusiScreen() {
             </View>
           }
           renderItem={({ item }) => {
-            const st = getStatusStyle(item.status);
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Icon name="calendar-week" size={20} color="#374151" />
-                  <Text style={styles.cardTitle}>Distribusi #{item.id}</Text>
-                </View>
-                <View style={styles.cardRow}>
-                  <Icon name="calendar-start" size={15} color="#888" />
-                  <Text style={styles.cardInfo}>Mulai: {formatTanggal(item.tanggal_awal)}</Text>
-                </View>
-                <View style={styles.cardRow}>
-                  <Icon name="calendar-end" size={15} color="#888" />
-                  <Text style={styles.cardInfo}>Akhir: {formatTanggal(item.tanggal_akhir)}</Text>
-                </View>
-                <View style={[styles.badge, { backgroundColor: st.bg }]}>
-                  <Text style={{ color: st.color, fontWeight: '600', fontSize: 12 }}>
-                    {item.status}
-                  </Text>
-                </View>
+          const st = getStatusStyle(item.status);
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate('AslapDistribusiDetail', { distribusiId: item.id })}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardHeader}>
+                <Icon name="calendar-week" size={20} color="#374151" />
+                <Text style={styles.cardTitle}>Distribusi #{item.id}</Text>
+                {/* Tambah arrow di kanan */}
+                <Icon name="chevron-right" size={20} color="#9ca3af" />
               </View>
-            );
+              <View style={styles.cardRow}>
+                <Icon name="calendar-start" size={15} color="#888" />
+                <Text style={styles.cardInfo}>Mulai: {formatTanggal(item.tanggal_awal)}</Text>
+              </View>
+              <View style={styles.cardRow}>
+                <Icon name="calendar-end" size={15} color="#888" />
+                <Text style={styles.cardInfo}>Akhir: {formatTanggal(item.tanggal_akhir)}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: st.bg }]}>
+                <Text style={{ color: st.color, fontWeight: '600', fontSize: 12 }}>
+                  {item.status}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
           }}
         />
       )}
@@ -156,8 +162,8 @@ export default function AslapDistribusiScreen() {
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#F4F6F9' },
   center:       { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title:        { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 20, marginBottom: 12, color: '#000'  },
-  tabRow:       { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', elevation: 2 },
+  title:        { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 50, marginBottom: 12, color: '#000'  },
+  tabRow:       { flexDirection: 'row', marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', elevation: 2 },
   tabBtn:       { flex: 1, textAlign: 'center', paddingVertical: 12, fontSize: 14, color: '#888' },
   tabActive:    { color: '#0d6efd', fontWeight: '700', borderBottomWidth: 2, borderBottomColor: '#0d6efd' },
   card:         { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2 },

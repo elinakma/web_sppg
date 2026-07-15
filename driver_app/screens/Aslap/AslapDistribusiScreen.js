@@ -162,7 +162,7 @@ export default function AslapDistribusiScreen({ navigation }) {
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#F4F6F9' },
   center:       { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title:        { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 50, marginBottom: 12, color: '#000'  },
+  title:        { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 20, marginBottom: 12, color: '#000'  },
   tabRow:       { flexDirection: 'row', marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', elevation: 2 },
   tabBtn:       { flex: 1, textAlign: 'center', paddingVertical: 12, fontSize: 14, color: '#888' },
   tabActive:    { color: '#0d6efd', fontWeight: '700', borderBottomWidth: 2, borderBottomColor: '#0d6efd' },
